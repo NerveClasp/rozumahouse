@@ -1,2 +1,4 @@
 # rozumahouse
-From "розумний" (Ukrainian) - smart, and "house" (English) - дім
+From "розумаха" (Ukrainian) - smart (mr(s). smarty-pants), and "house" (English) - дім
+
+[WIP]
