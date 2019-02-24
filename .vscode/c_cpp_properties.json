@@ -1,0 +1,37 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "/home/mint/Arduino/libraries/FastLED",
+        "/home/mint/Arduino/libraries/ArduinoJson/**",
+        "/home/mint/Arduino/libraries/WebSockets/src",
+        "/home/mint/.arduino15/packages/esp8266/tools/**",
+        "/home/mint/.arduino15/packages/esp8266/hardware/esp8266/2.5.0/**",
+        "/home/mint/Arduino/libraries/**",
+        "/opt/arduino-1.8.8/lib/**",
+        "/opt/arduino-1.8.8/libraries/**",
+        "/opt/arduino-1.8.8/tools/**",
+        "/opt/arduino-1.8.8/hardware/tools/avr/avr/include/avr/**",
+        "/opt/arduino-1.8.8/hardware/arduino/avr/cores/arduino",
+        "/opt/arduino-1.8.8/hardware/tools/avr/include",
+        "/opt/arduino-1.8.8/hardware/arduino/avr/variants/standard",
+        "/usr/include",
+        "/opt/arduino-1.8.8/**",
+        "/opt/arduino-1.8.8/libraries/Ethernet/src",
+        "/opt/arduino-1.8.8/hardware/arduino/avr/libraries/SPI/src"
+      ],
+      "browse": {
+        "limitSymbolsToIncludedHeaders": false,
+        "path": ["/opt/arduino-1.8.8/**"]
+      },
+      "forcedInclude": [],
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "C_Cpp.intelliSenseEngine": "Tag Parser"
+    }
+  ],
+  "version": 4
+}
