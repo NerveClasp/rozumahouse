@@ -3,6 +3,8 @@ const fs = require('fs');
 const md5File = require('md5-file');
 const pathNode = require('path');
 
+const binFolders = ['../../dist-arduino', '../bins'];
+
 const update = (req, res) => {
   const { 'user-agent': userAgent } = req.headers;
   const allowedAgents = ['ESP8266-http-Update'];
@@ -76,33 +78,47 @@ const update = (req, res) => {
 
 const getFileList = () => {
   let files = {};
-  let path;
-  console.log(pathNode.resolve(__dirname, '../../dist-arduino'));
-  if (fs.existsSync(pathNode.resolve(__dirname, '../bins'))) {
-    // prod build/higher priority
-    path = pathNode.resolve(__dirname, '../bins');
-  } else if (fs.existsSync(pathNode.resolve(__dirname, '../../dist-arduino'))) {
-    // not a prod build/lower priority
-    path = pathNode.resolve(__dirname, '../../dist-arduino');
-  }
 
-  if (!path) return files;
+  binFolders.forEach(folder => {
+    if (!fs.existsSync(pathNode.resolve(__dirname, folder))) {
+      console.log(`Bins folder ${folder} not found`);
+      return;
+    }
 
-  fs.readdirSync(path)
-    .filter(file => file.indexOf('.bin') > 0)
-    .forEach(file => {
-      const [name] = file.split('.');
-      const filePath = pathNode.resolve(path, file);
-      const { size } = fs.statSync(filePath);
-      const hash = md5File.sync(filePath);
-      // stats.file
-      files[name] = {
-        fileName: name,
-        path: filePath,
-        size,
-        hash,
-      };
-    });
+    const path = pathNode.resolve(__dirname, folder);
+
+    fs.readdirSync(path)
+      .filter(file => file.indexOf('.bin') > 0)
+      .forEach(file => {
+        const [name] = file.split('.');
+        const filePath = pathNode.resolve(path, file);
+        const { size, birthtimeMs } = fs.statSync(filePath);
+        const hash = md5File.sync(filePath);
+
+        if (files[name]) {
+          const existingBirthtime = new Date(
+            fs.statSync(files[name].path).birthtimeMs
+          );
+
+          if (+existingBirthtime < +new Date(birthtimeMs)) {
+            files[name] = {
+              fileName: name,
+              path: filePath,
+              size,
+              hash,
+            };
+          }
+        } else {
+          files[name] = {
+            fileName: name,
+            path: filePath,
+            size,
+            hash,
+          };
+        }
+      });
+  });
+
   return files;
 };
 

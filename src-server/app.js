@@ -116,7 +116,7 @@ wsServer.on('connection', (socket, req) => {
             b: 254,
           },
         },
-        brightness: 254,
+        brightness: 5,
       })
     );
     // console.log(`sending ${JSON.stringify(message)}`);

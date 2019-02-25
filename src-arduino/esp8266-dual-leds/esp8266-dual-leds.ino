@@ -27,7 +27,7 @@ const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA update
 
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
-int delay_time = 10;
+int delay_time = 24;
 int brightness = 254; // Overall brightness definition. It can be changed on the fly.
 
 struct CRGB leds_left[NUM_LEDS];  // Initialize our LED array.
