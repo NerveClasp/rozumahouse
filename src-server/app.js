@@ -143,13 +143,14 @@ wsServer.on('connection', (socket, req) => {
   }
 });
 
-app.get('/updates', updater);
+app.get('/updates', updater.update);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 const staticDir = path.resolve(path.join(__dirname, '..', 'build'));
 
+console.log(JSON.stringify(updater.getFileList()));
 /**
  * Serve client only when deploying
  */

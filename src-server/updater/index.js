@@ -1,28 +1,9 @@
 /* eslint-disable no-console */
-/*
-[HTTP_USER_AGENT] => ESP8266-http-Update
-[HTTP_X_ESP8266_STA_MAC] => 18:FE:AA:AA:AA:AA
-[HTTP_X_ESP8266_AP_MAC] => 1A:FE:AA:AA:AA:AA
-[HTTP_X_ESP8266_FREE_SPACE] => 671744
-[HTTP_X_ESP8266_SKETCH_SIZE] => 373940
-[HTTP_X_ESP8266_SKETCH_MD5] => a56f8ef78a0bebd812f62067daf1408a
-[HTTP_X_ESP8266_CHIP_SIZE] => 4194304
-[HTTP_X_ESP8266_SDK_VERSION] => 1.3.0
-[HTTP_X_ESP8266_VERSION] => DOOR-7-g14f53a19
-*/
-/*
-'user-agent': 'ESP8266-http-Update',
-connection: 'close',
-'x-esp8266-sta-mac': 'A0:20:A6:21:AF:33',
-'x-esp8266-ap-mac': 'A2:20:A6:21:AF:33',
-'x-esp8266-free-space': '593920',
-'x-esp8266-sketch-size': '452336',
-'x-esp8266-sketch-md5': 'cfd2a962b91ff96ef6b56816c76d465c',
-'x-esp8266-chip-size': '4194304',
-'x-esp8266-sdk-version': '3.0.0-dev(c0f7b44)',
-'x-esp8266-mode': 'sketch'
-*/
-module.exports = (req, res) => {
+const fs = require('fs');
+const md5File = require('md5-file');
+const pathNode = require('path');
+
+const update = (req, res) => {
   const { 'user-agent': userAgent } = req.headers;
   const allowedAgents = ['ESP8266-http-Update'];
   if (!allowedAgents.some(allowed => allowed === userAgent)) {
@@ -30,6 +11,7 @@ module.exports = (req, res) => {
     res.end();
     return;
   }
+  const bins = getFileList();
   if (userAgent === 'ESP8266-http-Update') {
     const {
       'x-esp8266-free-space': freeSpace,
@@ -39,29 +21,89 @@ module.exports = (req, res) => {
     } = req.headers;
     if (!model) {
       console.log('MODEL/version is not specified.');
-      res.writeHeader(304);
+      res.writeHeader(403, { 'Content-Type': 'text/plain' });
+      res.write('403 Forbidden');
       res.end();
       return;
     }
     console.log(
       `Update request from ${model}, mac: ${mac}. Current sketch md5: ${md5}. Free space: ${freeSpace}`
     );
+    if (!bins[model]) {
+      console.log(`No bins for model ${model}`);
+      res.writeHeader(404, { 'Content-Type': 'text/plain' });
+      res.write('404 Not Found\n');
+      res.end();
+      return;
+    }
+    const { hash, size, path, fileName } = bins[model];
+    console.log(`existing bin data: ${hash}, path: ${path}`);
+    if (freeSpace < size) {
+      console.log('Not enough free space for the new sketch');
+      res.writeHeader(403, { 'Content-Type': 'text/plain' });
+      res.write('403 Forbidden');
+      res.end();
+      return;
+    }
+    if (hash === md5) {
+      console.log('No new version');
+      res.writeHeader(304, { 'Content-Type': 'text/plain' });
+      res.write('304 Not Modified\n');
+      res.end();
+      return;
+    } else {
+      console.log('Updating...');
+
+      fs.readFile(path, 'binary', (err, file) => {
+        if (err) {
+          res.writeHeader(500, { 'Content-Type': 'text/plain' });
+          res.write(`${err}\n`);
+          res.end();
+        } else {
+          res.writeHeader(200, {
+            'Content-Type': 'application/octet-stream',
+            'Content-Disposition': `attachment;filename=${fileName}`,
+            'Content-Length': `${size}`,
+            'x-MD5': md5File.sync(path),
+          });
+          res.write(file, 'binary');
+          res.end();
+        }
+      });
+    }
   }
-  // console.log(req.get('user-agent'));
-  // console.log(req.get('x-esp8266-free-space'));
-  // console.log(req.get('x-esp8266-sketch-size'));
-  // console.log(req.get('x-esp8266-sketch-md5'));
-  // console.log(req.get('x-esp8266-sta-mac'));
-  // console.log(req.get('x-esp8266-version'));
-  // console.log(req.headers);
-
-  // console.log(req);
-
-  // var version = req.get('x-ESP8266-version');
-  // if (version !== 'v3') {
-  //   res.sendFile(`${__dirname}/statics/updates/xxxxxxxxxxxx.bin`);
-  // } else {
-  console.log('No new version');
-  res.writeHeader(304);
-  res.end();
 };
+
+const getFileList = () => {
+  let files = {};
+  let path;
+  console.log(pathNode.resolve(__dirname, '../../dist-arduino'));
+  if (fs.existsSync(pathNode.resolve(__dirname, '../bins'))) {
+    // prod build/higher priority
+    path = pathNode.resolve(__dirname, '../bins');
+  } else if (fs.existsSync(pathNode.resolve(__dirname, '../../dist-arduino'))) {
+    // not a prod build/lower priority
+    path = pathNode.resolve(__dirname, '../../dist-arduino');
+  }
+
+  if (!path) return files;
+
+  fs.readdirSync(path)
+    .filter(file => file.indexOf('.bin') > 0)
+    .forEach(file => {
+      const [name] = file.split('.');
+      const filePath = pathNode.resolve(path, file);
+      const { size } = fs.statSync(filePath);
+      const hash = md5File.sync(filePath);
+      // stats.file
+      files[name] = {
+        fileName: name,
+        path: filePath,
+        size,
+        hash,
+      };
+    });
+  return files;
+};
+
+module.exports = { update, getFileList };

@@ -20,14 +20,14 @@
 #define COLOR_ORDER GRB // It's GRB for WS2812B
 #define LED_TYPE WS2812 // What kind of strip are you using (APA102, WS2801 or WS2812B)?
 // #define NUM_LEDS 16     // Number of LED's
-// #define NUM_LEDS 64 // Number of LED's
-#define NUM_LEDS 200 // Number of LED's
+#define NUM_LEDS 64 // Number of LED's
+// #define NUM_LEDS 200 // Number of LED's
 
 const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA updates
 
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
-int delay_time = 30;
+int delay_time = 10;
 int brightness = 254; // Overall brightness definition. It can be changed on the fly.
 
 struct CRGB leds_left[NUM_LEDS];  // Initialize our LED array.
@@ -70,7 +70,7 @@ char *socketPath = "/devices";
 
 void setup()
 {
-  Serial.begin(57600); // Initialize serial port for debugging.
+  Serial.begin(115200); // Initialize serial port for debugging.
   delay(1000);         // Soft startup to ease the flow of electrons.
 
   LEDS.addLeds<LED_TYPE, LED_DT_LEFT, COLOR_ORDER>(leds_left, NUM_LEDS);
