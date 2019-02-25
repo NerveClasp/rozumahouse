@@ -14,21 +14,51 @@ const wsServer = new WebSocket.Server({ server });
 
 let devices = [];
 let users = [];
+let forwardNone = 0;
+const delayTime = 15000;
 
-const randomColor = () => Math.floor(Math.random() * 254);
+const getAnimation = () => {
+  forwardNone++;
+  return {
+    action: 'command',
+    right: {
+      animation: 'forward',
+      // animation: forwardNone % 2 ? 'forward' : 'none',
+    },
+    left: {
+      animation: 'forward',
+
+      // animation: forwardNone % 2 ? 'forward' : 'none',
+    },
+  };
+};
+
+const randomColor = (min = 0, max = 125) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
 const randomGradient = () => ({
-  mode: 'gradient_rgb',
-  from: {
-    r: randomColor(),
-    g: randomColor(),
-    b: randomColor(),
-  },
-  to: {
-    r: randomColor(),
-    g: randomColor(),
-    b: randomColor(),
-  },
+  r: randomColor(),
+  g: randomColor(),
+  b: randomColor(),
 });
+
+const makeGradients = () => {
+  const from = randomGradient();
+  return {
+    action: 'command',
+    right: {
+      mode: 'gradient_rgb',
+      from,
+      to: randomGradient(),
+    },
+    left: {
+      mode: 'gradient_rgb',
+      from,
+      to: randomGradient(),
+    },
+    brightness: 254,
+  };
+};
 
 wsServer.on('connection', (socket, req) => {
   const { remoteAddress, remoteFamily } = req.connection;
@@ -51,15 +81,19 @@ wsServer.on('connection', (socket, req) => {
 
   if (req.url === '/devices') {
     setInterval(() => {
-      const message = {
-        action: 'command',
-        right: randomGradient(),
-        left: randomGradient(),
-        brightness: 10,
-      };
+      const message = makeGradients();
+      if (socket.readyState !== 3) {
+        socket.send(JSON.stringify(message));
+      }
       // console.log(`sending ${JSON.stringify(message)}`);
-      socket.send(JSON.stringify(message));
-    }, 2000);
+    }, delayTime);
+    setInterval(() => {
+      const message = getAnimation();
+      if (socket.readyState !== 3) {
+        socket.send(JSON.stringify(message));
+      }
+      //   // console.log(`sending ${JSON.stringify(message)}`);
+    }, delayTime);
   }
 });
 
