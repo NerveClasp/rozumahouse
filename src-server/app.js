@@ -5,6 +5,8 @@ const fs = require('fs');
 const express = require('express');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
+
+const updater = require('./updater');
 // const rp = require('request-promise');
 // const shortid = require('shortid');
 const app = express();
@@ -121,19 +123,27 @@ wsServer.on('connection', (socket, req) => {
     // }, delayTime);
     // setInterval(() => {
     // const message = getAnimation();
-    if (socket.readyState !== 3) {
-      socket.send(
-        JSON.stringify({
-          action: 'command',
-          animation: 'back-and-forth',
-        })
-      );
-      // socket.send(JSON.stringify(message));
-    }
+    setTimeout(() => {
+      if (socket.readyState !== 3) {
+        socket.send(
+          JSON.stringify({
+            action: 'command',
+            animation: 'back-and-forth',
+          })
+        );
+      }
+    }, 3000);
+    socket.send(
+      JSON.stringify({
+        action: 'check-for-updates',
+      })
+    );
     //   // console.log(`sending ${JSON.stringify(message)}`);
     // }, delayTime);
   }
 });
+
+app.get('/updates', updater);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));

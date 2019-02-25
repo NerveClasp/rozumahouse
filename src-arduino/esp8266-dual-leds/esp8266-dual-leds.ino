@@ -3,6 +3,8 @@
 #include "FS.h"
 #include <ESP8266WiFi.h>
 #include <WebSocketsClient.h>
+#include <Esp.h>
+#include <ESP8266httpUpdate.h>
 
 #include <Hash.h>
 #define ARDUINOJSON_ENABLE_PROGMEM 0
@@ -21,9 +23,11 @@
 // #define NUM_LEDS 64 // Number of LED's
 #define NUM_LEDS 200 // Number of LED's
 
+const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA updates
+
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
-int delay_time = 60;
+int delay_time = 30;
 int brightness = 254; // Overall brightness definition. It can be changed on the fly.
 
 struct CRGB leds_left[NUM_LEDS];  // Initialize our LED array.
@@ -60,6 +64,9 @@ WebSocketsClient clients[] = {client1, client2, client3, client4}; // four shoul
 const int clientsCount = 4;
 
 WebSocketsClient webSocket;
+char *host = "192.168.1.100";
+int port = 7331;
+char *socketPath = "/devices";
 
 void setup()
 {
@@ -84,7 +91,7 @@ void setup()
   }
   // setupSockets();
   webSocket.onEvent(webSocketEvent);
-  webSocket.begin("192.168.1.100", 7331, "/devices");
+  webSocket.begin(host, port, socketPath);
 }
 
 void loop()
@@ -135,8 +142,18 @@ void parseMessage(String message)
         brightness = root["brightness"]; // 254
         FastLED.setBrightness(brightness);
       }
-      if(root.containsKey("animation")){
+      if (root.containsKey("animation"))
+      {
         animation = root["animation"];
+      }
+      if (root.containsKey("reboot"))
+      {
+        bool reboot = root["reboot"];
+        if (reboot)
+        {
+          Serial.println("Rebooting");
+          ESP.restart();
+        }
       }
     }
     else if (strcmp(action, "wifi-settings-status") == 0)
@@ -146,6 +163,10 @@ void parseMessage(String message)
     else if (strcmp(action, "show-files") == 0)
     {
       showFilesystem();
+    }
+    else if (strcmp(action, "check-for-updates") == 0)
+    {
+      checkForUpdates();
     }
     else
     {
@@ -233,19 +254,22 @@ void animate()
     resetAnimationPos();
     return;
   }
-  if (strcmp(animation, "back-and-forth") == 0){
+  if (strcmp(animation, "back-and-forth") == 0)
+  {
     animateBackAndForth();
   }
 
   // delay(delay_time); // TODO: set with JSON
 }
 
-void resetAnimationPos(){
+void resetAnimationPos()
+{
   animation_forward = true;
   animation_position = 0;
 }
 
-void animateBackAndForth(){
+void animateBackAndForth()
+{
   if (animation_forward)
   {
     if (animation_position == NUM_LEDS)
@@ -491,6 +515,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     // socket.io upgrade confirmation message (required)
     // sendMessage("5");
     webSocket.sendTXT("5");
+    sendDeviceInfo();
   }
   break;
   case WStype_TEXT:
@@ -509,12 +534,73 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
   }
 }
 
-void sendMessage(String message)
+void sendMessageToAll(String message)
 {
   for (int i = 0; i < clientsCount; i++)
   {
     clients[i].sendTXT(message);
   }
+}
+
+void sendDeviceInfo()
+{
+  StaticJsonBuffer<1000> jsonBuffer;
+  JsonObject &info = jsonBuffer.createObject();
+  info["model"] = MODEL;
+  info["chipId"] = ESP.getChipId();
+  info["freeSketchSpace"] = ESP.getFreeSketchSpace();
+  info["sketchMD5"] = ESP.getSketchMD5();
+  info["power"] = ESP.getVcc();
+  info["coreVersion"] = ESP.getCoreVersion();
+  info["sdkVersion"] = ESP.getSdkVersion();
+  info["ip"] = IpAddress2String(WiFi.localIP());
+  info["mac"] = WiFi.macAddress();
+  sendMessage(info);
+}
+
+String IpAddress2String(const IPAddress &ipAddress)
+{
+  return String(ipAddress[0]) + String(".") +
+         String(ipAddress[1]) + String(".") +
+         String(ipAddress[2]) + String(".") +
+         String(ipAddress[3]);
+}
+
+void checkForUpdates()
+{
+  Serial.println("Checking for updates");
+  t_httpUpdate_return ret = ESPhttpUpdate.update(host, port, "/updates", MODEL);
+  switch (ret)
+  {
+  case HTTP_UPDATE_FAILED:
+    Serial.println("[update] Update failed.");
+    break;
+  case HTTP_UPDATE_NO_UPDATES:
+    Serial.println("[update] Update no Update.");
+    break;
+  case HTTP_UPDATE_OK:
+    Serial.println("[update] Update ok."); // may not called we reboot the ESP
+    break;
+  }
+}
+
+String jsonToString(JsonObject obj)
+{
+  String result;
+  obj.printTo(result);
+  return result;
+}
+// Send Json via Socket connection
+void sendMessage(String message)
+{
+  webSocket.sendTXT(message);
+}
+
+void sendMessage(JsonObject &object)
+{
+  String message;
+  object.printTo(message);
+  sendMessage(message);
 }
 
 /*

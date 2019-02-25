@@ -63,3 +63,8 @@ typings/
 # personal
 wifi.txt
 socket.txt
+
+# arduino build
+dist-arduino/*
+# I guess I'll need to copy these .bin somewhere else later
+!dist-arduino/esp8266-dual-leds.ino.bin
