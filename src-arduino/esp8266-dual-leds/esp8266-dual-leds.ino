@@ -12,7 +12,7 @@
 #endif
 
 // Fixed definitions cannot change on the fly.
-#define LED_DT_LEFT D8  // Serial data pin
+#define LED_DT_LEFT D8   // Serial data pin
 #define LED_DT_RIGHT D12 // Serial data pin
 
 #define COLOR_ORDER GRB // It's GRB for WS2812B
@@ -24,7 +24,7 @@
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
 int delay_time = 60;
-int brightness = 100; // Overall brightness definition. It can be changed on the fly.
+int brightness = 254; // Overall brightness definition. It can be changed on the fly.
 
 struct CRGB leds_left[NUM_LEDS];  // Initialize our LED array.
 struct CRGB leds_right[NUM_LEDS]; // Initialize our LED array.
@@ -33,6 +33,7 @@ String previousMessage;
 String message = "";
 const char *left_mode = "solid_rgb";
 const char *right_mode = "solid_rgb";
+const char *animation = "none";
 const char *left_animation = "none";
 const char *right_animation = "none";
 
@@ -43,6 +44,9 @@ int left_b = 207;
 int right_r = 33;
 int right_g = 62;
 int right_b = 207;
+
+int animation_position = 0;
+bool animation_forward = true;
 
 // const char *websockets_server_host = "192.168.1.100"; //Enter server adress
 // int websockets_server_port = 7331;            // Enter server port
@@ -74,15 +78,251 @@ void setup()
   SPIFFS.begin();
   setupWifi();
 
-  // for (int i = 0; i < clientsCount; i++)
-  // {
-  //   clients[i].onEvent(webSocketEvent);
-  // }
+  for (int i = 0; i < clientsCount; i++)
+  {
+    clients[i].onEvent(webSocketEvent);
+  }
   // setupSockets();
   webSocket.onEvent(webSocketEvent);
   webSocket.begin("192.168.1.100", 7331, "/devices");
 }
 
+void loop()
+{
+  // for(int i = 0; i < clientsCount; i++){
+  //   clients[i].loop();
+  // }
+  webSocket.loop();
+  while (Serial.available() > 0)
+  {
+    previousMessage = message;
+    message = Serial.readString();
+    Serial.println(message);
+    parseMessage(message);
+  }
+
+  animate();
+
+  FastLED.show();
+  delay(delay_time); // TODO: set with JSON
+}
+
+void parseMessage(String message)
+{
+  StaticJsonBuffer<1000> jb;
+  JsonObject &root = jb.parseObject(message);
+  if (root.success())
+  {
+    const char *action = root["action"];
+    if (strcmp(action, "command") == 0)
+    {
+      if (root.containsKey("right"))
+      {
+        JsonObject &right = root["right"];
+        // Serial.println("right");
+        // right.printTo(Serial);
+        setLeds(right, "right");
+      }
+      if (root.containsKey("left"))
+      {
+        JsonObject &left = root["left"];
+        // Serial.println("left");
+        // left.printTo(Serial);
+        setLeds(left, "left");
+      }
+      if (root.containsKey("brightness"))
+      {
+        brightness = root["brightness"]; // 254
+        FastLED.setBrightness(brightness);
+      }
+      if(root.containsKey("animation")){
+        animation = root["animation"];
+      }
+    }
+    else if (strcmp(action, "wifi-settings-status") == 0)
+    {
+      checkWifiSettingsFile();
+    }
+    else if (strcmp(action, "show-files") == 0)
+    {
+      showFilesystem();
+    }
+    else
+    {
+      Serial.println("action not found");
+    }
+  }
+  else
+  {
+    Serial.println("Could not parse JSON");
+  }
+}
+
+void parseMessage(uint8_t *messageUint)
+{
+  String message = (char *)messageUint;
+  parseMessage(message);
+}
+
+void setLeds(JsonObject &config, String which)
+{
+  if (config.containsKey("animation")) // TODO: think if this is needed
+  {
+    const char *animation = config["animation"];
+    // Serial.println(animation);
+    if (which == "left")
+    {
+      left_animation = animation;
+    }
+    else
+    {
+      right_animation = animation;
+    }
+  }
+
+  if (config.containsKey("mode"))
+  {
+    const char *mode = config["mode"];
+    if (strcmp(mode, "solid_rgb") == 0)
+    {
+      if (which == "left")
+      {
+        left_mode = "solid_rgb";
+        fill_solid(leds_left, NUM_LEDS, CRGB(config["r"], config["g"], config["b"]));
+      }
+      else
+      {
+        left_mode = "solid_rgb";
+        fill_solid(leds_right, NUM_LEDS, CRGB(config["r"], config["g"], config["b"]));
+      }
+    }
+
+    if (strcmp(mode, "gradient_rgb") == 0)
+    {
+      JsonObject &from = config["from"];
+      JsonObject &to = config["to"];
+
+      if (which == "left")
+      {
+        left_mode = "gradient_rgb";
+        fill_gradient_RGB(
+            leds_left,
+            NUM_LEDS,
+            CRGB(from["r"], from["g"], from["b"]),
+            CRGB(to["r"], to["g"], to["b"]));
+      }
+      else
+      {
+        right_mode = "gradient_rgb";
+        fill_gradient_RGB(
+            leds_right,
+            NUM_LEDS,
+            CRGB(from["r"], from["g"], from["b"]),
+            CRGB(to["r"], to["g"], to["b"]));
+      }
+      resetAnimationPos();
+    }
+  }
+  delay(delay_time);
+}
+
+void animate()
+{
+  if (strcmp(animation, "none") == 0)
+  {
+    resetAnimationPos();
+    return;
+  }
+  if (strcmp(animation, "back-and-forth") == 0){
+    animateBackAndForth();
+  }
+
+  // delay(delay_time); // TODO: set with JSON
+}
+
+void resetAnimationPos(){
+  animation_forward = true;
+  animation_position = 0;
+}
+
+void animateBackAndForth(){
+  if (animation_forward)
+  {
+    if (animation_position == NUM_LEDS)
+    {
+      animation_forward = false;
+      animation_position = NUM_LEDS - 1;
+    }
+    else
+    {
+      left_animation = "forward";
+      right_animation = "forward";
+      animateForward();
+      animation_position += 1;
+    }
+  }
+  else
+  {
+    if (animation_position < 0)
+    {
+      animation_forward = true;
+      animation_position = 0;
+    }
+    else
+    {
+      left_animation = "backward";
+      right_animation = "backward";
+      animateBackward();
+      animation_position -= 1;
+    }
+  }
+}
+
+void animateForward()
+{
+  if (strcmp(left_animation, "forward") == 0)
+  {
+    CRGB firstColor = leds_left[0];
+    for (int i = 0; i < NUM_LEDS - 1; i++)
+    {
+      leds_left[i] = leds_left[i + 1];
+    }
+    leds_left[NUM_LEDS - 1] = firstColor;
+  }
+  if (strcmp(right_animation, "forward") == 0)
+  {
+    CRGB firstColor = leds_right[0];
+    for (int i = 0; i < NUM_LEDS - 1; i++)
+    {
+      leds_right[i] = leds_right[i + 1];
+    }
+    leds_right[NUM_LEDS - 1] = firstColor;
+  }
+}
+
+void animateBackward()
+{
+  if (strcmp(left_animation, "backward") == 0)
+  {
+    CRGB lastColor = leds_left[NUM_LEDS - 1];
+    for (int i = NUM_LEDS - 1; i > 0; i--)
+    {
+      leds_left[i] = leds_left[i - 1];
+    }
+    leds_left[0] = lastColor;
+  }
+  if (strcmp(right_animation, "backward") == 0)
+  {
+    CRGB lastColor = leds_right[NUM_LEDS - 1];
+    for (int i = NUM_LEDS - 1; i > 0; i--)
+    {
+      leds_right[i] = leds_right[i - 1];
+    }
+    leds_right[0] = lastColor;
+  }
+}
+
+// SETUP
 void setupWifi()
 {
   if (SPIFFS.exists("/wifi.txt"))
@@ -153,12 +393,10 @@ void setupSockets()
 
           const char *host = servers[i]["host"];
           int port = servers[i]["port"];
-          // WebSocketsClient test;
-          // clients[i].beginSocketIO();
-          // clients[i].beginSocketIO(host, port, "/devices");
-          clients[i].begin(host, port, "/devices", "arduino");
 
-          // clients[i].setReconnectInterval(5000);
+          clients[i].begin(host, port, "/devices");
+
+          clients[i].setReconnectInterval(5000);
           // clients[i].enableHeartbeat(15000, 3000, 2);
 
           // clients[i].connect(host, port, "/devices");
@@ -189,7 +427,7 @@ void checkWifiSettingsFile()
   {
     const char *name = root["name"];
     const char *password = root["password"];
-    root.printTo(Serial);
+    // root.printTo(Serial);
   }
   else
   {
@@ -211,200 +449,7 @@ void showFilesystem()
   }
 }
 
-void parseMessage(String message)
-{
-  StaticJsonBuffer<1000> jb;
-  JsonObject &root = jb.parseObject(message);
-  if (root.success())
-  {
-    const char *action = root["action"];
-    Serial.println(action);
-    Serial.println(strcmp(action, "command") == 0);
-    if (strcmp(action, "command") == 0)
-    {
-      JsonObject &right = root["right"];
-      setLeds(right, "right");
-      JsonObject &left = root["left"];
-      setLeds(left, "left");
-
-      brightness = root["brightness"]; // 254
-      if (brightness)
-      {
-        FastLED.setBrightness(brightness);
-      }
-    }
-    else if (strcmp(action, "wifi-settings-status") == 0)
-    {
-      checkWifiSettingsFile();
-    }
-    else if (strcmp(action, "show-files") == 0)
-    {
-      showFilesystem();
-    }
-    else
-    {
-      Serial.println("action not found");
-    }
-  }
-  else
-  {
-    Serial.println("Could not parse JSON");
-  }
-}
-
-void parseMessage(uint8_t *messageUint)
-{
-  String message = (char *)messageUint;
-  parseMessage(message);
-}
-
-void animateForward(String which)
-{
-  if(which == "left"){
-    CRGB firstColor = leds_left[0];
-    for (int i = 0; i < NUM_LEDS - 1; i++)
-    {
-      leds_left[i] = leds_left[i + 1];
-    }
-    leds_left[NUM_LEDS - 1] = firstColor;
-  }else{
-    CRGB firstColor = leds_right[0];
-    for (int i = 0; i < NUM_LEDS - 1; i++)
-    {
-      leds_right[i] = leds_right[i + 1];
-    }
-    leds_right[NUM_LEDS - 1] = firstColor;
-  }
-}
-
-void loop()
-{
-  webSocket.loop();
-  while (Serial.available() > 0)
-  {
-    previousMessage = message;
-    message = Serial.readString();
-    Serial.println(message);
-    parseMessage(message);
-  }
-  // fill_solid(leds, NUM_LEDS, CRGB::GreenYellow);
-  // fill_gradient_RGB(leds, NUM_LEDS, CRGB::Blue, CRGB::Yellow);
-  // fill_gradient(leds_right, NUM_LEDS, CHSV(0, 254,0), CHSV(254, 0, 0))
-  if (strcmp(left_animation, "forward") == 0)
-  {
-    animateForward("left");
-  }
-  if (strcmp(right_animation, "forward") == 0)
-  {
-    animateForward("right");
-  }
-  FastLED.show();
-  delay(delay_time); // TODO: set with JSON
-  // sleep()
-  // for (int i = 0; i < clientsCount; i++)
-  // {
-  //   clients[i].loop();
-  // }
-}
-
-void setLeds(JsonObject &config, String which)
-{
-  const char *mode = config["mode"];
-  const char *animation = config["animation"];
-
-  if (animation)
-  {
-    Serial.println(animation);
-    if (which == "left")
-    {
-      left_animation = animation;
-    }
-    else
-    {
-      right_animation = animation;
-    }
-  }
-
-  if (mode)
-  {
-    if (strcmp(mode, "solid_rgb") == 0)
-    {
-      if (which == "left")
-      {
-        left_mode = "solid_rgb";
-        fill_solid(leds_left, NUM_LEDS, CRGB(config["r"], config["g"], config["b"]));
-      }
-      else
-      {
-        left_mode = "solid_rgb";
-        fill_solid(leds_right, NUM_LEDS, CRGB(config["r"], config["g"], config["b"]));
-      }
-    }
-
-    if (strcmp(mode, "gradient_rgb") == 0)
-    {
-      JsonObject &from = config["from"];
-      JsonObject &to = config["to"];
-      Serial.println();
-      from.printTo(Serial);
-      Serial.println();
-
-      to.printTo(Serial);
-      Serial.println();
-
-      if (which == "left")
-      {
-        left_mode = "gradient_rgb";
-        fill_gradient_RGB(
-            leds_left,
-            NUM_LEDS,
-            CRGB(from["r"], from["g"], from["b"]),
-            CRGB(to["r"], to["g"], to["b"]));
-      }
-      else
-      {
-        right_mode = "gradient_rgb";
-        fill_gradient_RGB(
-            leds_right,
-            NUM_LEDS,
-            CRGB(from["r"], from["g"], from["b"]),
-            CRGB(to["r"], to["g"], to["b"]));
-      }
-    }
-    if (strcmp(mode, "gradient_rgb") == 0)
-    {
-      JsonObject &from = config["from"];
-      JsonObject &to = config["to"];
-      Serial.println();
-      from.printTo(Serial);
-      Serial.println();
-
-      to.printTo(Serial);
-      Serial.println();
-
-      if (which == "left")
-      {
-        left_mode = "gradient_rgb";
-        fill_gradient_RGB(
-            leds_left,
-            NUM_LEDS,
-            CRGB(from["r"], from["g"], from["b"]),
-            CRGB(to["r"], to["g"], to["b"]));
-      }
-      else
-      {
-        right_mode = "gradient_rgb";
-        fill_gradient_RGB(
-            leds_right,
-            NUM_LEDS,
-            CRGB(from["r"], from["g"], from["b"]),
-            CRGB(to["r"], to["g"], to["b"]));
-      }
-    }
-  }
-  delay(delay_time);
-}
-
+// IO
 String fileRead(String name)
 {
   SPIFFS.begin();
@@ -419,7 +464,6 @@ String fileRead(String name)
   }
   else
   {
-
     while (file.available())
     {
       //Lets read line by line from the file
@@ -450,7 +494,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
   }
   break;
   case WStype_TEXT:
-    Serial.printf("[WSc] get text: %s\n", payload);
+    // Serial.printf("[WSc] get text: %s\n", payload);
     parseMessage(payload);
     // send message to server
     // webSocket.sendTXT("message here");
@@ -469,9 +513,7 @@ void sendMessage(String message)
 {
   for (int i = 0; i < clientsCount; i++)
   {
-    WebSocketsClient client = clients[i];
-    // WebsocketsMessage data = message;
-    client.sendTXT(message);
+    clients[i].sendTXT(message);
   }
 }
 

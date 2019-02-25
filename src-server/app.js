@@ -80,20 +80,58 @@ wsServer.on('connection', (socket, req) => {
   });
 
   if (req.url === '/devices') {
-    setInterval(() => {
-      const message = makeGradients();
-      if (socket.readyState !== 3) {
-        socket.send(JSON.stringify(message));
-      }
-      // console.log(`sending ${JSON.stringify(message)}`);
-    }, delayTime);
-    setInterval(() => {
-      const message = getAnimation();
-      if (socket.readyState !== 3) {
-        socket.send(JSON.stringify(message));
-      }
-      //   // console.log(`sending ${JSON.stringify(message)}`);
-    }, delayTime);
+    // setInterval(() => {
+    // const message = makeGradients();
+    // if (socket.readyState !== 3) {
+    //   socket.send(JSON.stringify(message));
+    // }
+    socket.send(
+      JSON.stringify({
+        action: 'command',
+        right: {
+          mode: 'gradient_rgb',
+          from: {
+            r: 254,
+            g: 100,
+            b: 0,
+          },
+          to: {
+            r: 0,
+            g: 100,
+            b: 254,
+          },
+        },
+        left: {
+          mode: 'gradient_rgb',
+          from: {
+            r: 254,
+            g: 100,
+            b: 0,
+          },
+          to: {
+            r: 0,
+            g: 100,
+            b: 254,
+          },
+        },
+        brightness: 254,
+      })
+    );
+    // console.log(`sending ${JSON.stringify(message)}`);
+    // }, delayTime);
+    // setInterval(() => {
+    // const message = getAnimation();
+    if (socket.readyState !== 3) {
+      socket.send(
+        JSON.stringify({
+          action: 'command',
+          animation: 'back-and-forth',
+        })
+      );
+      // socket.send(JSON.stringify(message));
+    }
+    //   // console.log(`sending ${JSON.stringify(message)}`);
+    // }, delayTime);
   }
 });
 
