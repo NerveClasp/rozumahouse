@@ -265,7 +265,7 @@ if (fs.existsSync(staticDir)) {
   app.use(express.static(staticDir));
 }
 
-// apollo.installSubscriptionHandlers(server)
+apollo.installSubscriptionHandlers(wsServer);
 
 server.listen(port, () =>
   console.log(`Rozumahouse is listening on port ${port} ;)`)
