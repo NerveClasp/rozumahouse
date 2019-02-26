@@ -5,61 +5,89 @@ const fs = require('fs');
 const express = require('express');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
+const { postgraphile } = require('postgraphile');
 
-const updater = require('./updater');
-// const rp = require('request-promise');
-// const shortid = require('shortid');
+const { update, getFileList } = require('./updater');
+const express_graphql = require('express-graphql');
+const { buildSchema } = require('graphql');
+// GraphQL schema
+const schema = buildSchema(`
+  type Query {
+    device(ip: String!): Device
+    devices(model: String): [Device]
+  },
+  type Device {
+    name: String
+    room: String
+    mac: String
+    ip: String
+    chipId: String
+    model: String
+    freeSketchSpace: Int
+    coreVersion: String
+    sdkVersion: String
+    action: [String]
+    command: [String]
+    animation: [String]
+    left: [String]
+    right: [String]
+  }
+`);
+
+const getDevice = args => {
+  const { ip } = args;
+  return devices.find(device => device.ip === ip);
+};
+
+const getDevices = args => {
+  const { model } = args;
+  if (!model) return devices;
+  return devices.filter(device => device.model === model);
+};
+
+// Root resolver
+const root = {
+  device: getDevice,
+  devices: getDevices,
+};
+
 const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 7331;
 const wsServer = new WebSocket.Server({ server });
 
+app.get('/updates', update);
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+app.use(
+  '/__graphql',
+  express_graphql({
+    schema: schema,
+    rootValue: root,
+    graphiql: true,
+  })
+);
+
+app.use(
+  postgraphile(
+    process.env.DATABASE_URL ||
+      'postgres://rozumaha_server:rozumaha@localhost/rozumahouse'
+  )
+);
+
 let devices = [];
 let users = [];
-let forwardNone = 0;
-const delayTime = 15000;
-
-const getAnimation = () => {
-  forwardNone++;
-  return {
-    action: 'command',
-    right: {
-      animation: 'forward',
-      // animation: forwardNone % 2 ? 'forward' : 'none',
-    },
-    left: {
-      animation: 'forward',
-
-      // animation: forwardNone % 2 ? 'forward' : 'none',
-    },
-  };
-};
 
 const randomColor = (min = 0, max = 125) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
 
-const randomGradient = () => ({
-  r: randomColor(),
-  g: randomColor(),
-  b: randomColor(),
-});
-
-const makeGradients = () => {
-  const from = randomGradient();
-  return {
-    action: 'command',
-    right: {
-      mode: 'gradient_rgb',
-      from,
-      to: randomGradient(),
-    },
-    left: {
-      mode: 'gradient_rgb',
-      from,
-      to: randomGradient(),
-    },
-    brightness: 254,
-  };
+const addDeviceInfo = info => {
+  devices = devices.map(device => {
+    if (device.ip !== info.ip) return device;
+    return { ...device, ...info };
+  });
 };
 
 wsServer.on('connection', (socket, req) => {
@@ -67,9 +95,15 @@ wsServer.on('connection', (socket, req) => {
   console.log(
     `Connection from ${remoteAddress} - ${remoteFamily} - ${req.url}`
   );
+  const ipRegex = /[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}/gm;
+  const [ip] = ipRegex.exec(remoteAddress);
 
   if (req.url === '/devices') {
-    devices.push(socket);
+    devices.push({ ip });
+    addDeviceInfo({
+      ip,
+      socket: socket,
+    });
   }
   if (req.url === '/users') {
     users.push(socket);
@@ -78,6 +112,18 @@ wsServer.on('connection', (socket, req) => {
   socket.on('message', message => {
     if (req.url !== '/auto') {
       console.log(message);
+      console.log('===========');
+    }
+    const parsedMessage = JSON.parse(message);
+    const { kind, ...other } = parsedMessage;
+    if (!kind) return;
+    switch (kind) {
+      case 'about':
+        addDeviceInfo(other);
+        console.log(`other: ${other}`);
+        break;
+      default:
+        break;
     }
   });
 
@@ -143,14 +189,10 @@ wsServer.on('connection', (socket, req) => {
   }
 });
 
-app.get('/updates', updater.update);
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-
+//lol
 const staticDir = path.resolve(path.join(__dirname, '..', 'build'));
 
-console.log(JSON.stringify(updater.getFileList()));
+console.log(JSON.stringify(getFileList()));
 /**
  * Serve client only when deploying
  */

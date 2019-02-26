@@ -68,3 +68,6 @@ socket.txt
 dist-arduino/*
 # I guess I'll need to copy these .bin somewhere else later
 !dist-arduino/esp8266-dual-leds.ino.bin
+
+temp.json
+secret.md

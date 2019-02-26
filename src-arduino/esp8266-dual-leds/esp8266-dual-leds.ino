@@ -27,7 +27,7 @@ const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA update
 
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
-int delay_time = 24;
+int animation_delay = 24;
 int brightness = 254; // Overall brightness definition. It can be changed on the fly.
 
 struct CRGB leds_left[NUM_LEDS];  // Initialize our LED array.
@@ -111,7 +111,7 @@ void loop()
   animate();
 
   FastLED.show();
-  delay(delay_time); // TODO: set with JSON
+  delay(animation_delay); // TODO: set with JSON
 }
 
 void parseMessage(String message)
@@ -146,27 +146,23 @@ void parseMessage(String message)
       {
         animation = root["animation"];
       }
-      if (root.containsKey("reboot"))
+      if (root.containsKey("animation_delay"))
       {
-        bool reboot = root["reboot"];
-        if (reboot)
-        {
-          Serial.println("Rebooting");
-          ESP.restart();
-        }
+        animation_delay = root["animation_delay"];
       }
-    }
-    else if (strcmp(action, "wifi-settings-status") == 0)
-    {
-      checkWifiSettingsFile();
-    }
-    else if (strcmp(action, "show-files") == 0)
-    {
-      showFilesystem();
     }
     else if (strcmp(action, "check-for-updates") == 0)
     {
       checkForUpdates();
+    }
+    else if (strcmp(action, "reboot") == 0)
+    {
+      Serial.println("Rebooting");
+      ESP.restart();
+    }
+    else if (strcmp(action, "send-device-info") == 0)
+    {
+      sendDeviceInfo();
     }
     else
     {
@@ -244,7 +240,7 @@ void setLeds(JsonObject &config, String which)
       resetAnimationPos();
     }
   }
-  delay(delay_time);
+  delay(animation_delay);
 }
 
 void animate()
@@ -258,8 +254,20 @@ void animate()
   {
     animateBackAndForth();
   }
+  if (strcmp(animation, "forward") == 0)
+  {
+    left_animation = "forward";
+    right_animation = "forward";
+    animateForward();
+  }
+  if (strcmp(animation, "backward") == 0)
+  {
+    left_animation = "backward";
+    right_animation = "backward";
+    animateBackward();
+  }
 
-  // delay(delay_time); // TODO: set with JSON
+  // delay(animation_delay); // TODO: set with JSON
 }
 
 void resetAnimationPos()
@@ -546,6 +554,7 @@ void sendDeviceInfo()
 {
   StaticJsonBuffer<1000> jsonBuffer;
   JsonObject &info = jsonBuffer.createObject();
+  info["kind"] = "about";
   info["model"] = MODEL;
   info["chipId"] = ESP.getChipId();
   info["freeSketchSpace"] = ESP.getFreeSketchSpace();
@@ -555,6 +564,34 @@ void sendDeviceInfo()
   info["sdkVersion"] = ESP.getSdkVersion();
   info["ip"] = IpAddress2String(WiFi.localIP());
   info["mac"] = WiFi.macAddress();
+
+  // made with the help of https://arduinojson.org/v5/assistant/
+  JsonArray &action = info.createNestedArray("action");
+  action.add("command");
+  action.add("check-for-updates");
+  action.add("send-device-info");
+  action.add("reboot");
+
+  JsonArray &command = info.createNestedArray("command");
+  command.add("right");
+  command.add("left");
+  command.add("brightness");
+  command.add("animation");
+  command.add("animation_delay");
+
+  JsonArray &animation = info.createNestedArray("animation");
+  animation.add("forward");
+  animation.add("backward");
+  animation.add("back-and-forth");
+
+  JsonArray &left = info.createNestedArray("left");
+  left.add("solid_rgb");
+  left.add("gradient_rgb");
+
+  JsonArray &right = info.createNestedArray("right");
+  right.add("solid_rgb");
+  right.add("gradient_rgb");
+
   sendMessage(info);
 }
 
