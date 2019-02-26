@@ -5,11 +5,19 @@ const fs = require('fs');
 const express = require('express');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
-const { postgraphile } = require('postgraphile');
+// const { postgraphile } = require('postgraphile');
 
 const { update, getFileList } = require('./updater');
 const express_graphql = require('express-graphql');
 const { buildSchema } = require('graphql');
+const cors = require('cors');
+const {
+  ApolloServer,
+  gql,
+  graphqlExpress,
+  graphiqlExpress,
+} = require('apollo-server-express');
+// const { makeExecutableSchema } = require('graphql-tools')
 // GraphQL schema
 const schema = buildSchema(`
   type Query {
@@ -45,37 +53,87 @@ const getDevices = args => {
   return devices.filter(device => device.model === model);
 };
 
+const getDeviceApollo = (_, args) => {
+  const { ip } = args;
+  return devices.find(device => device.ip === ip);
+};
+
+const getDevicesApollo = (_, args) => {
+  const { model } = args;
+  if (!model) return devices;
+  return devices.filter(device => device.model === model);
+};
+
 // Root resolver
 const root = {
   device: getDevice,
   devices: getDevices,
 };
 
+// The GraphQL schema
+const typeDefs = gql`
+  type Query {
+    device(ip: String!): Device
+    devices(model: String): [Device]
+  }
+  type Device {
+    name: String
+    room: String
+    mac: String
+    ip: String
+    chipId: String
+    model: String
+    freeSketchSpace: Int
+    coreVersion: String
+    sdkVersion: String
+    action: [String]
+    command: [String]
+    animation: [String]
+    left: [String]
+    right: [String]
+  }
+`;
+
+// A map of functions which return data for the schema.
+const resolvers = {
+  Query: {
+    device: getDeviceApollo,
+    devices: getDevicesApollo,
+  },
+};
+
+const apollo = new ApolloServer({ typeDefs, resolvers });
+
+// const myGraphQLSchema = makeExecutableSchema({ typeDefs, resolvers })
+
 const app = express();
+
+apollo.applyMiddleware({ app });
+
 const server = http.createServer(app);
 const port = process.env.PORT || 7331;
 const wsServer = new WebSocket.Server({ server });
 
-app.get('/updates', update);
-
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.use(
-  '/__graphql',
-  express_graphql({
-    schema: schema,
-    rootValue: root,
-    graphiql: true,
-  })
-);
+// app.use(
+//   '/__graphql',
+//   express_graphql({
+//     schema: schema,
+//     rootValue: root,
+//     graphiql: true,
+//   })
+// );
 
-app.use(
-  postgraphile(
-    process.env.DATABASE_URL ||
-      'postgres://rozumaha_server:rozumaha@localhost/rozumahouse'
-  )
-);
+app.get('/updates', update);
+// app.use(
+//   postgraphile(
+//     process.env.DATABASE_URL ||
+//       'postgres://rozumaha_server:rozumaha@localhost/rozumahouse'
+//   )
+// );
 
 let devices = [];
 let users = [];
@@ -120,7 +178,15 @@ wsServer.on('connection', (socket, req) => {
     switch (kind) {
       case 'about':
         addDeviceInfo(other);
-        console.log(`other: ${other}`);
+        console.log(`other: ${JSON.stringify(other)}`);
+        if (other.model === 'esp8266-dual-leds') {
+          socket.send(
+            JSON.stringify({
+              action: 'command',
+              brightness: 5,
+            })
+          );
+        }
         break;
       default:
         break;
@@ -162,7 +228,7 @@ wsServer.on('connection', (socket, req) => {
             b: 254,
           },
         },
-        brightness: 5,
+        brightness: 20,
       })
     );
     // console.log(`sending ${JSON.stringify(message)}`);
@@ -179,17 +245,16 @@ wsServer.on('connection', (socket, req) => {
         );
       }
     }, 3000);
-    socket.send(
-      JSON.stringify({
-        action: 'check-for-updates',
-      })
-    );
+    // socket.send(
+    //   JSON.stringify({
+    //     action: 'check-for-updates',
+    //   })
+    // );
     //   // console.log(`sending ${JSON.stringify(message)}`);
     // }, delayTime);
   }
 });
 
-//lol
 const staticDir = path.resolve(path.join(__dirname, '..', 'build'));
 
 console.log(JSON.stringify(getFileList()));
@@ -199,6 +264,8 @@ console.log(JSON.stringify(getFileList()));
 if (fs.existsSync(staticDir)) {
   app.use(express.static(staticDir));
 }
+
+// apollo.installSubscriptionHandlers(server)
 
 server.listen(port, () =>
   console.log(`Rozumahouse is listening on port ${port} ;)`)
