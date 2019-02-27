@@ -1,29 +1,41 @@
+#include <Arduino.h>
+#include <WiFi.h>
+// #include "SPIFFS.h"
+// #include <ArduinoOTA.h>
+#include <SPIFFS.h>
+
 #include <ArduinoJson.h>
 #include <FastLED.h>
 #include "FS.h"
-#include <ESP8266WiFi.h>
+// #include <ESP8266WiFi.h>
+// #include <WiFi.h>
+#include <esp_wifi.h>
+// #include <WiFiClient.h>
+// #include <ESP32/
 #include <WebSocketsClient.h>
 #include <Esp.h>
-#include <ESP8266httpUpdate.h>
+// #include <ESP8266httpUpdate.h>
+// #include <Update.h>
+#include <Update.h>
+#include <Esp.h>
 
-#include <Hash.h>
+// #include <Hash.h>
 #define ARDUINOJSON_ENABLE_PROGMEM 0
 
 #if FASTLED_VERSION < 3001000
 #error "Requires FastLED 3.1 or later; check github for latest code."
 #endif
 
+const char *MODEL = "esp32-dual-leds"; // do not change if you want OTA updates
 // Fixed definitions cannot change on the fly.
-#define LED_DT_LEFT D8   // Serial data pin
-#define LED_DT_RIGHT D12 // Serial data pin
+#define LED_DT_LEFT 14  // Serial data pin
+#define LED_DT_RIGHT 12 // Serial data pin
 
 #define COLOR_ORDER GRB // It's GRB for WS2812B
 #define LED_TYPE WS2812 // What kind of strip are you using (APA102, WS2801 or WS2812B)?
 // #define NUM_LEDS 16     // Number of LED's
-#define NUM_LEDS 64 // Number of LED's
-// #define NUM_LEDS 200 // Number of LED's
-
-const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA updates
+// #define NUM_LEDS 64 // Number of LED's
+#define NUM_LEDS 200 // Number of LED's
 
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
@@ -71,7 +83,7 @@ char *socketPath = "/devices";
 void setup()
 {
   Serial.begin(115200); // Initialize serial port for debugging.
-  delay(1000);         // Soft startup to ease the flow of electrons.
+  delay(1000);          // Soft startup to ease the flow of electrons.
 
   LEDS.addLeds<LED_TYPE, LED_DT_LEFT, COLOR_ORDER>(leds_left, NUM_LEDS);
   LEDS.addLeds<LED_TYPE, LED_DT_RIGHT, COLOR_ORDER>(leds_right, NUM_LEDS);
@@ -151,10 +163,10 @@ void parseMessage(String message)
         animation_delay = root["animation_delay"];
       }
     }
-    else if (strcmp(action, "check-for-updates") == 0)
-    {
-      checkForUpdates();
-    }
+    // else if (strcmp(action, "check-for-updates") == 0)
+    // {
+    //   checkForUpdates();
+    // }
     else if (strcmp(action, "reboot") == 0)
     {
       Serial.println("Rebooting");
@@ -481,19 +493,19 @@ void checkWifiSettingsFile()
   }
 }
 
-void showFilesystem()
-{
-  Dir dir = SPIFFS.openDir("/");
-  while (dir.next())
-  {
-    Serial.print(dir.fileName());
-    if (dir.fileSize())
-    {
-      File f = dir.openFile("r");
-      Serial.println(f.size());
-    }
-  }
-}
+// void showFilesystem()
+// {
+//   Dir dir = SPIFFS.openDir("/");
+//   while (dir.next())
+//   {
+//     Serial.print(dir.fileName());
+//     if (dir.fileSize())
+//     {
+//       File f = dir.openFile("r");
+//       Serial.println(f.size());
+//     }
+//   }
+// }
 
 // IO
 String fileRead(String name)
@@ -570,19 +582,19 @@ void sendDeviceInfo()
   JsonObject &info = jsonBuffer.createObject();
   info["kind"] = "about";
   info["model"] = MODEL;
-  info["chipId"] = ESP.getChipId();
-  info["freeSketchSpace"] = ESP.getFreeSketchSpace();
-  info["sketchMD5"] = ESP.getSketchMD5();
-  info["power"] = ESP.getVcc();
-  info["coreVersion"] = ESP.getCoreVersion();
-  info["sdkVersion"] = ESP.getSdkVersion();
+  // info["chipId"] = ESP.getChipId();
+  // info["freeSketchSpace"] = ESP.getFreeSketchSpace();
+  // info["sketchMD5"] = ESP.getSketchMD5();
+  // info["power"] = ESP.getVcc();
+  // info["coreVersion"] = ESP.getCoreVersion();
+  // info["sdkVersion"] = ESP.getSdkVersion();
   info["ip"] = IpAddress2String(WiFi.localIP());
   info["mac"] = WiFi.macAddress();
 
   // made with the help of https://arduinojson.org/v5/assistant/
   JsonArray &action = info.createNestedArray("action");
   action.add("command");
-  action.add("check-for-updates");
+  // action.add("check-for-updates");
   action.add("send-device-info");
   action.add("reboot");
 
@@ -619,6 +631,7 @@ String IpAddress2String(const IPAddress &ipAddress)
          String(ipAddress[3]);
 }
 
+/*
 void checkForUpdates()
 {
   Serial.println("Checking for updates");
@@ -636,7 +649,7 @@ void checkForUpdates()
     break;
   }
 }
-
+*/
 String jsonToString(JsonObject obj)
 {
   String result;
