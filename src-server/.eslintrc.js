@@ -4,19 +4,18 @@ module.exports = {
     es6: true,
     node: true,
   },
-  extends: ['react-app', 'eslint:recommended', 'plugin:prettier/recommended'],
+  extends: ['eslint:recommended', 'plugin:prettier/recommended'],
   globals: {
     Atomics: 'readonly',
     SharedArrayBuffer: 'readonly',
   },
   parserOptions: {
-    ecmaFeatures: {
-      jsx: true,
-    },
+    // ecmaFeatures: {
+    //   jsx: true,
+    // },
     ecmaVersion: 2018,
     sourceType: 'module',
   },
-  plugins: ['react'],
   rules: {
     'prefer-template': 1,
   },

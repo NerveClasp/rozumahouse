@@ -38,9 +38,10 @@ const DeviceList = props => (
             </tr>
           </thead>
           <tbody>
-            {data.devices.map((device, i) => (
-              <Device device={device} key={i} />
-            ))}
+            {data.devices &&
+              data.devices.map((device, i) => (
+                <Device device={device} key={i} />
+              ))}
           </tbody>
         </table>
       );
