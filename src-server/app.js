@@ -64,8 +64,7 @@ wsServer.on('connection', (socket, req) => {
   const [ip] = ipRegex.exec(remoteAddress);
 
   if (req.url === '/devices' || req.url === '/auto') {
-    // devices.push({ ip });
-    // setTimeout(() => {
+    devices.push({ ip });
     addDeviceInfo({
       ip,
       socket: socket,
