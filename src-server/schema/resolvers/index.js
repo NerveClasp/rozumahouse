@@ -5,47 +5,66 @@ const devs = new StoredDevices();
 const getDevice = (_, args) => {
   const { mac, ip } = args;
   if (!mac) return devs.getDeviceByIp(ip); // TODO: rework/rethink
-  return devs.getDeviceByMac(mac);
+  return device;
 };
 
 const getDevices = (_, args) => {
   const { model } = args;
   const devices = devs.getDevices();
+  devices.forEach(dev => {
+    const { socket, ...other } = dev;
+    console.log(other);
+  });
+  // console.log(devices);
   if (!model) return devices;
   return devices.filter(device => device.model === model);
 };
 
 const turnLedOff = (_, { mac, which }) => {
-  const { socket } = devs.getDeviceByMac(mac);
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
   if (which === 'both') {
+    device.state = { ...device.state, left: 'off', right: 'off' };
     led.off({ socket, ledName: 'left' });
     led.off({ socket, ledName: 'right' });
   } else {
+    device.state[which] = 'off';
     led.off({ socket, ledName: which });
   }
-  return devs.getDeviceByMac(mac);
+  devs.updateDevice(device);
+  return device;
 };
 
 const turnLedOn = (_, args) => {
   const { mac, which, ...other } = args;
-  const { socket } = devs.getDeviceByMac(mac);
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
   if (which === 'both') {
-    led.initDual({ socket, ...other });
+    led.initDual({ ...other, ...device });
+    device.state = { ...device.state, left: 'on', right: 'on' };
+  } else {
+    device.state[which] = 'on';
+    led.init({ socket, ledName: which, ...other, ...device });
   }
-  led.init({ socket, ledName: which, ...other });
-  return devs.getDeviceByMac(mac);
+  devs.updateDevice(device);
+  return device;
 };
 
 const changeLedAnimation = (_, { mac, animation }) => {
-  const { socket } = devs.getDeviceByMac(mac);
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
   led.animation({ socket, animation });
-  return devs.getDeviceByMac(mac);
+  device.curAnimation = animation;
+  devs.updateDevice(device);
+  return device;
 };
 
 const changeLedBrightness = (_, { mac, brightness }) => {
-  const { socket } = devs.getDeviceByMac(mac);
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
   led.brightness({ socket, brightness });
-  return devs.getDeviceByMac(mac);
+  devs.updateDevice(device);
+  return device;
 };
 
 module.exports = {

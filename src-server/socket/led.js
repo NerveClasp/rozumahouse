@@ -59,7 +59,7 @@ const gradientRgb = ({ socket, ledName, startColor, endColor }) => {
   sendToSocket(socket, {
     action: 'command',
     [ledName]: {
-      mode,
+      mode: 'gradient_rgb',
       from: startColor || from,
       to: endColor || to,
     },
