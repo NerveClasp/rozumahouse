@@ -24,7 +24,7 @@ const off = ({ socket, ledName }) => {
   });
 };
 
-const init = ({ socket, brightness = 20, ledName, animation }) => {
+const init = ({ socket, brightness = 20, ledName, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
     [ledName]: {
@@ -34,10 +34,11 @@ const init = ({ socket, brightness = 20, ledName, animation }) => {
     },
     brightness,
     animation: animation || 'back-and-forth',
+    ...other,
   });
 };
 
-const initDual = ({ socket, brightness = 20, animation }) => {
+const initDual = ({ socket, brightness = 20, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
     left: {
@@ -52,10 +53,11 @@ const initDual = ({ socket, brightness = 20, animation }) => {
     },
     brightness,
     animation: animation || 'back-and-forth',
+    ...other,
   });
 };
 
-const gradientRgb = ({ socket, ledName, startColor, endColor }) => {
+const gradientRgb = ({ socket, ledName, startColor, endColor, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
     [ledName]: {
@@ -63,21 +65,59 @@ const gradientRgb = ({ socket, ledName, startColor, endColor }) => {
       from: startColor || from,
       to: endColor || to,
     },
+    ...other,
   });
 };
 
-const brightness = ({ socket, brightness = 20 }) => {
+const brightness = ({ socket, brightness = 20, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
     brightness,
+    ...other,
   });
 };
 
-const animation = ({ socket, animation }) => {
+const animation = ({ socket, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
     animation,
+    ...other,
   });
 };
 
-module.exports = { off, gradientRgb, brightness, initDual, init, animation };
+const checkForUpdates = ({ socket }) => {
+  sendToSocket(socket, {
+    action: 'check-for-updates',
+  });
+};
+
+const reboot = ({ socket }) => {
+  sendToSocket(socket, {
+    action: 'reboot',
+  });
+};
+
+const send = ({ socket, ...message }) => {
+  sendToSocket(socket, message);
+};
+
+const setActiveLeds = ({ socket, activeLeds, ...other }) => {
+  sendToSocket(socket, {
+    action: 'command',
+    activeLeds,
+    ...other,
+  });
+};
+
+module.exports = {
+  off,
+  gradientRgb,
+  brightness,
+  initDual,
+  init,
+  animation,
+  checkForUpdates,
+  reboot,
+  send,
+  setActiveLeds,
+};

@@ -78,7 +78,7 @@ wsServer.on('connection', (socket, req) => {
   socket.on('message', message => {
     const parsedMessage = JSON.parse(message);
     if (req.url !== '/auto') {
-      console.log(message);
+      console.log(parsedMessage);
       console.log('===========');
     } else {
       // temp autoheater
@@ -101,14 +101,15 @@ wsServer.on('connection', (socket, req) => {
       }
     }
     const { kind, ...other } = parsedMessage;
+    // console.log(other);
     if (!kind) return;
     switch (kind) {
       case 'about':
         addDeviceInfo(other);
-        console.log(`other: ${JSON.stringify(other)}`);
+        // console.log(`other: ${JSON.stringify(other)}`);
         if (other.model === 'esp8266-dual-leds') {
           // led.initDual({ socket, brightness: 2 });
-          led.brightness({ socket, brightness: 30 });
+
           led.gradientRgb({
             socket,
             ledName: 'left',
@@ -121,6 +122,15 @@ wsServer.on('connection', (socket, req) => {
             startColor: { r: 20, g: 3, b: 178 },
             endColor: { r: 178, g: 3, b: 20 },
           });
+          setTimeout(() => {
+            // led.brightness({
+            //   socket,
+            //   brightness: 30,
+            //   animation: 'forward-march-8',
+            // });
+            // led.send({ action: 'command', activeLeds: 16 });
+            // led.setActiveLeds({ socket, activeLeds: 32 });
+          }, 3000);
         }
         break;
       default:
@@ -134,21 +144,24 @@ wsServer.on('connection', (socket, req) => {
     // led.initDual({ socket, brightness: 20, animation: 'back-and-forth' });
     // rgb(120, 3, 178)
     // rgb(178, 3, 105)
-    // led.gradientRgb({
-    //   socket,
-    //   ledName: 'left',
-    //   startColor: { r: 120, g: 3, b: 178 },
-    //   endColor: { r: 178, g: 3, b: 105 },
-    // });
-    // led.gradientRgb({
-    //   socket,
-    //   ledName: 'right',
-    //   startColor: { r: 120, g: 3, b: 178 },
-    //   endColor: { r: 178, g: 3, b: 105 },
-    // });
+    led.gradientRgb({
+      socket,
+      ledName: 'left',
+      startColor: { r: 120, g: 3, b: 178 },
+      endColor: { r: 178, g: 3, b: 105 },
+    });
+    led.gradientRgb({
+      socket,
+      ledName: 'right',
+      startColor: { r: 120, g: 3, b: 178 },
+      endColor: { r: 178, g: 3, b: 105 },
+    });
     setTimeout(() => {
       led.animation({ socket, animation: 'back-and-forth' });
     }, 1000);
+    // setTimeout(() => {
+    //   led.checkForUpdates({ socket }); //
+    // }, 2000);
   }
 });
 

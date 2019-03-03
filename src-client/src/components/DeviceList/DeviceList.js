@@ -17,6 +17,7 @@ const GET_DEVICES = gql`
       animation
       left
       right
+      activeLeds
     }
   }
 `;
@@ -31,6 +32,7 @@ const DeviceList = props => (
         <table className={classes.table}>
           <thead>
             <tr>
+              <td />
               <td>Model</td>
               <td>IP</td>
               <td>MAC</td>

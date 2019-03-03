@@ -20,11 +20,15 @@ module.exports = gql`
     animation: [String]
     left: [String]
     right: [String]
+    activeLeds: Int
   }
   type Mutation {
     turnLedOn(mac: String!, which: String!): Device
     turnLedOff(mac: String!, which: String!): Device
     changeLedAnimation(mac: String!, animation: String!): Device
     changeLedBrightness(mac: String!, brightness: String!): Device
+    reboot(mac: String!): Device
+    checkForUpdates(mac: String!): Device
+    setActiveLeds(mac: String!, activeLeds: Int!): Device
   }
 `;

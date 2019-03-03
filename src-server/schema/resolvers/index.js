@@ -5,16 +5,16 @@ const devs = new StoredDevices();
 const getDevice = (_, args) => {
   const { mac, ip } = args;
   if (!mac) return devs.getDeviceByIp(ip); // TODO: rework/rethink
-  return device;
+  return devs.getDeviceByMac(mac);
 };
 
 const getDevices = (_, args) => {
   const { model } = args;
   const devices = devs.getDevices();
-  devices.forEach(dev => {
-    const { socket, ...other } = dev;
-    console.log(other);
-  });
+  // devices.forEach(dev => {
+  //   const { socket, ...other } = dev;
+  //   // console.log(other);
+  // });
   // console.log(devices);
   if (!model) return devices;
   return devices.filter(device => device.model === model);
@@ -67,6 +67,27 @@ const changeLedBrightness = (_, { mac, brightness }) => {
   return device;
 };
 
+const reboot = (_, { mac }) => {
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
+  led.reboot({ socket });
+  return device;
+};
+
+const checkForUpdates = (_, { mac }) => {
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
+  led.checkForUpdates({ socket });
+  return device;
+};
+
+const setActiveLeds = (_, { mac, activeLeds, ...other }) => {
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
+  led.setActiveLeds({ socket, activeLeds, ...other });
+  return device;
+};
+
 module.exports = {
   Query: {
     device: getDevice,
@@ -77,5 +98,8 @@ module.exports = {
     turnLedOff,
     changeLedAnimation,
     changeLedBrightness,
+    reboot,
+    checkForUpdates,
+    setActiveLeds,
   },
 };

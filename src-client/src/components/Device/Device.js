@@ -1,6 +1,26 @@
 import React, { Component } from 'react';
 import gql from 'graphql-tag';
 import { Mutation } from 'react-apollo';
+import { withStyles } from '@material-ui/core/styles';
+import pink from '@material-ui/core/colors/pink';
+import green from '@material-ui/core/colors/green';
+import DeviceIcon from '../DeviceIcon';
+
+const styles = {
+  avatar: {
+    margin: 10,
+  },
+  pinkAvatar: {
+    margin: 10,
+    color: '#fff',
+    backgroundColor: pink[500],
+  },
+  greenAvatar: {
+    margin: 10,
+    color: '#fff',
+    backgroundColor: green[500],
+  },
+};
 
 const TURN_ON = gql`
   mutation TurnLedOn($mac: String!, $which: String!) {
@@ -26,12 +46,29 @@ const ANIMATION_CHANGE = gql`
   }
 `;
 
-export default class Device extends Component {
+const REBOOT = gql`
+  mutation Reboot($mac: String!) {
+    reboot(mac: $mac) {
+      mac
+    }
+  }
+`;
+
+const CHECK_FOR_UPDATES = gql`
+  mutation CheckForUpdates($mac: String!) {
+    checkForUpdates(mac: $mac) {
+      mac
+    }
+  }
+`;
+
+class Device extends Component {
   render() {
     const { device } = this.props;
-    const { model, ip, mac, name, animation } = device;
+    const { model, ip, mac, name, animation, action, activeLeds } = device;
     return (
       <tr>
+        <td>{model && <DeviceIcon model={model} />}</td>
         <td>{model}</td>
         <td>{ip}</td>
         <td>{mac}</td>
@@ -89,7 +126,38 @@ export default class Device extends Component {
             )}
           </Mutation>
         </td>
+        {action && action.find(act => act === 'reboot') && (
+          <Mutation mutation={REBOOT} ignoreResults>
+            {reboot => (
+              <button
+                onClick={e => {
+                  const { mac } = this.props.device;
+                  reboot({ variables: { mac } });
+                }}
+              >
+                Reboot
+              </button>
+            )}
+          </Mutation>
+        )}
+        {action && action.find(act => act === 'check-for-updates') && (
+          <Mutation mutation={CHECK_FOR_UPDATES} ignoreResults>
+            {checkForUpdates => (
+              <button
+                onClick={e => {
+                  const { mac } = this.props.device;
+                  checkForUpdates({ variables: { mac } });
+                }}
+              >
+                Check For Updates
+              </button>
+            )}
+          </Mutation>
+        )}
+        {activeLeds && <td>{activeLeds}</td>}
       </tr>
     );
   }
 }
+
+export default withStyles(styles)(Device);

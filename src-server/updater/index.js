@@ -8,6 +8,7 @@ const binFolders = ['../../dist-arduino', '../bins'];
 const update = (req, res) => {
   const { 'user-agent': userAgent } = req.headers;
   const allowedAgents = ['ESP8266-http-Update'];
+  console.log(`checking for updates for ${userAgent}`);
   if (!allowedAgents.some(allowed => allowed === userAgent)) {
     res.writeHeader(403);
     res.end();
