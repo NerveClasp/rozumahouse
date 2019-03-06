@@ -13,6 +13,7 @@
 #error "Requires FastLED 3.1 or later; check github for latest code."
 #endif
 
+const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA updates
 // Fixed definitions cannot change on the fly.
 #define LED_DT_LEFT D8   // Serial data pin
 #define LED_DT_RIGHT D12 // Serial data pin
@@ -20,11 +21,9 @@
 #define COLOR_ORDER GRB // It's GRB for WS2812B
 #define LED_TYPE WS2812 // What kind of strip are you using (APA102, WS2801 or WS2812B)?
 // #define NUM_LEDS 16     // Number of LED's
-#define NUM_LEDS 64 // Number of LED's
-int activeLeds = 32;
+#define NUM_LEDS 180 // Number of LED's
+int activeLeds = 180;
 // #define NUM_LEDS 200 // Number of LED's
-
-const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA updates
 
 // Initialize changeable global variables.
 // int brightness = 10; // Overall brightness definition. It can be changed on the fly.
@@ -36,11 +35,11 @@ struct CRGB leds_right[NUM_LEDS]; // Initialize our LED array.
 
 String previousMessage;
 String message = "";
-const char *left_mode = "solid_rgb";
-const char *right_mode = "solid_rgb";
-const char *animation = "none";
-const char *left_animation = "none";
-const char *right_animation = "none";
+const char *left_mode = "gradient_rgb";
+const char *right_mode = "gradient_rgb";
+const char *animation = "back-and-forth";
+const char *left_animation = "back-and-forth";
+const char *right_animation = "back-and-forth";
 
 int left_r = 33;
 int left_g = 62;
@@ -53,26 +52,18 @@ int right_b = 207;
 int animation_position = 0;
 bool animation_forward = true;
 
-// const char *websockets_server_host = "192.168.1.100"; //Enter server adress
-// int websockets_server_port = 7331;            // Enter server port
-// using namespace websockets;
-
-WebSocketsClient client1;
-WebSocketsClient client2;
-WebSocketsClient client3;
-WebSocketsClient client4;
-WebSocketsClient clients[] = {client1, client2, client3, client4}; // four should be enough for everybody =)
-const int clientsCount = 4;
-
 WebSocketsClient webSocket;
-char *host = "192.168.1.100";
-int port = 7331;
+WebSocketsClient devWebSocket;
+char *devHost = "192.168.1.100";
+char *host = "192.168.1.223";
+
+int port = 7777;
 char *socketPath = "/devices";
 
 void setup()
 {
   Serial.begin(115200); // Initialize serial port for debugging.
-  delay(1000);         // Soft startup to ease the flow of electrons.
+  delay(1000);          // Soft startup to ease the flow of electrons.
 
   LEDS.addLeds<LED_TYPE, LED_DT_LEFT, COLOR_ORDER>(leds_left, NUM_LEDS);
   LEDS.addLeds<LED_TYPE, LED_DT_RIGHT, COLOR_ORDER>(leds_right, NUM_LEDS);
@@ -80,27 +71,29 @@ void setup()
   FastLED.setBrightness(brightness);
   set_max_power_in_volts_and_milliamps(5, 1000); // FastLED power management set at 5V, 500mA
   FastLED.clear();
-  fill_solid(leds_right, NUM_LEDS, CRGB(right_r, right_g, right_b));
-  fill_solid(leds_left, NUM_LEDS, CRGB(left_r, left_g, left_b));
+  /*
+startColor: { r: 120, g: 3, b: 178 },
+      endColor: { r: 178, g: 3, b: 105 },
+  */
+  fill_gradient_RGB(leds_right, NUM_LEDS, CRGB(120, 3, 178), CRGB(178, 3, 105));
+  fill_gradient_RGB(leds_left, NUM_LEDS, CRGB(120, 3, 178), CRGB(178, 3, 105));
+
+  // fill_solid(leds_right, NUM_LEDS, CRGB(right_r, right_g, right_b));
+  // fill_solid(leds_left, NUM_LEDS, CRGB(left_r, left_g, left_b));
 
   SPIFFS.begin();
   setupWifi();
 
-  for (int i = 0; i < clientsCount; i++)
-  {
-    clients[i].onEvent(webSocketEvent);
-  }
-  // setupSockets();
   webSocket.onEvent(webSocketEvent);
   webSocket.begin(host, port, socketPath);
+  devWebSocket.onEvent(webSocketEvent);
+  devWebSocket.begin(devHost, port, socketPath);
 }
 
 void loop()
 {
-  // for(int i = 0; i < clientsCount; i++){
-  //   clients[i].loop();
-  // }
   webSocket.loop();
+  devWebSocket.loop();
   while (Serial.available() > 0)
   {
     previousMessage = message;
@@ -265,10 +258,12 @@ void setLeds(JsonObject &config, String which)
   FastLED.delay(animation_delay);
 }
 
-void setActiveLeds() {
-  if(NUM_LEDS > activeLeds){
-//    leds_left(activeLeds, NUM_LEDS - activeLeds).fillSolid(CHSV(0, 0, 0));
-//    leds_right(activeLeds, NUM_LEDS - activeLeds).fillSolid(CHSV(0, 0, 0));
+void setActiveLeds()
+{
+  if (NUM_LEDS > activeLeds)
+  {
+    //    leds_left(activeLeds, NUM_LEDS - activeLeds).fillSolid(CHSV(0, 0, 0));
+    //    leds_right(activeLeds, NUM_LEDS - activeLeds).fillSolid(CHSV(0, 0, 0));
     fill_solid(&(leds_left[activeLeds]), NUM_LEDS - activeLeds, CRGB(0, 0, 0));
     fill_solid(&(leds_right[activeLeds]), NUM_LEDS - activeLeds, CRGB(0, 0, 0));
   }
@@ -369,37 +364,6 @@ void animateForward()
   }
 }
 
-// void animateForwardMarchSpecial()
-// {
-//   if (strcmp(left_animation, "forward-march-8") == 0)
-//   {
-//     CRGB firstColor = leds_left[0];
-//     for (int i = 0; i < activeLeds / 2 - 1; i++)
-//     {
-//       leds_left[i] = leds_left[i + 1];
-//     }
-//     for (int j = activeLeds / 2 - 1; j > 0; j--)
-//     {
-//       leds_left[j] = leds_left[j - 1];
-//     }
-//     leds_left[activeLeds / 2 - 1] = firstColor;
-//     // leds_left[activeLeds / 2 - 1] = firstColor;
-//   }
-//   if (strcmp(right_animation, "forward") == 0)
-//   {
-//     CRGB firstColor = leds_right[0];
-//     for (int i = 0; i < activeLeds / 2 - 1; i++)
-//     {
-//       leds_right[i] = leds_right[i + 1];
-//     }
-//     for (int j = activeLeds / 2 - 1; j > 0; j--)
-//     {
-//       leds_right[j] = leds_right[j - 1];
-//     }
-//     leds_right[activeLeds - 1] = firstColor;
-//   }
-// }
-
 void animateBackward()
 {
   if (strcmp(left_animation, "backward") == 0)
@@ -453,56 +417,6 @@ void setupWifi()
 
         Serial.print("Connected, IP address: ");
         Serial.println(WiFi.localIP());
-      }
-      else
-      {
-        Serial.println("Could not parse wifi.txt as JSON");
-      }
-    }
-  }
-  else
-  {
-    Serial.println("wifi.json file not found!\nPlease change wifi_example.txt and rename it to wifi.txt");
-  }
-}
-
-void setupSockets()
-{
-  if (SPIFFS.exists("/socket.txt"))
-  {
-    File f = SPIFFS.open("/socket.txt", "r");
-    if (!f)
-    {
-      Serial.println("/socket.txt file failed to open!");
-    }
-    else
-    {
-      String socketSettings = fileRead("/socket.txt");
-      StaticJsonBuffer<1000> jb;
-      JsonObject &root = jb.parseObject(socketSettings);
-      if (root.success())
-      {
-        JsonArray &servers = root["servers"];
-        for (int i = 0; i < servers.size(); i++)
-        {
-          if (i >= clientsCount)
-          {
-            Serial.println("You've exceeded allowed number of clients.\nAdd more clientN variables at the top and add them to the array.");
-            break;
-          }
-
-          const char *host = servers[i]["host"];
-          int port = servers[i]["port"];
-
-          clients[i].begin(host, port, "/devices");
-
-          clients[i].setReconnectInterval(5000);
-          // clients[i].enableHeartbeat(15000, 3000, 2);
-
-          // clients[i].connect(host, port, "/devices");
-          // clients[i].send("Hi Server!");
-          // clients[i].ping();
-        }
       }
       else
       {
@@ -586,35 +500,23 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
   case WStype_CONNECTED:
   {
     Serial.printf("[WSc] Connected to url: %s\n", payload);
-
     // send message to server when Connected
     // socket.io upgrade confirmation message (required)
     // sendMessage("5");
-    webSocket.sendTXT("5");
+    // webSocket.sendTXT("5");
     sendDeviceInfo();
   }
   break;
   case WStype_TEXT:
     // Serial.printf("[WSc] get text: %s\n", payload);
     parseMessage(payload);
-    // send message to server
-    // webSocket.sendTXT("message here");
     break;
   case WStype_BIN:
     Serial.printf("[WSc] get binary length: %u\n", length);
     // hexdump(payload, length);
-
-    // send data to server
-    // webSocket.sendBIN(payload, length);
     break;
-  }
-}
-
-void sendMessageToAll(String message)
-{
-  for (int i = 0; i < clientsCount; i++)
-  {
-    clients[i].sendTXT(message);
+  default:
+    break;
   }
 }
 
@@ -650,10 +552,10 @@ void sendDeviceInfo()
   command.add("activeLeds");
 
   JsonArray &animation = info.createNestedArray("animation");
+  animation.add("none");
   animation.add("forward");
   animation.add("backward");
   animation.add("back-and-forth");
-  // animation.add("forward-march-8");
 
   JsonArray &left = info.createNestedArray("left");
   left.add("solid_rgb");
@@ -679,7 +581,12 @@ String IpAddress2String(const IPAddress &ipAddress)
 void checkForUpdates()
 {
   Serial.println("Checking for updates");
-  t_httpUpdate_return ret = ESPhttpUpdate.update(host, port, "/updates", MODEL);
+//  checkForUpdates(host, port); // turn off updates from prod for now
+  checkForUpdates(devHost, port);
+}
+
+void checkForUpdates(char* updateHost, int updatePort){
+  t_httpUpdate_return ret = ESPhttpUpdate.update(updateHost, updatePort, "/updates", MODEL);
   switch (ret)
   {
   case HTTP_UPDATE_FAILED:
@@ -690,6 +597,8 @@ void checkForUpdates()
     break;
   case HTTP_UPDATE_OK:
     Serial.println("[update] Update ok."); // may not called we reboot the ESP
+    break;
+  default:
     break;
   }
 }
@@ -704,6 +613,7 @@ String jsonToString(JsonObject obj)
 void sendMessage(String message)
 {
   webSocket.sendTXT(message);
+  devWebSocket.sendTXT(message);
 }
 
 void sendMessage(JsonObject &object)

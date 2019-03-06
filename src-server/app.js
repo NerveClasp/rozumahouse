@@ -21,7 +21,7 @@ const app = express();
 apollo.applyMiddleware({ app });
 
 const server = http.createServer(app);
-const port = process.env.PORT || 7331;
+const port = process.env.PORT || 7777;
 const wsServer = new WebSocket.Server({ server });
 
 app.use(cors());
@@ -64,12 +64,13 @@ wsServer.on('connection', (socket, req) => {
   const [ip] = ipRegex.exec(remoteAddress);
 
   if (req.url === '/devices' || req.url === '/auto') {
-    devices.push({ ip });
-    addDeviceInfo({
-      ip,
-      socket: socket,
-    });
-    // }, 300);
+    addDeviceInfo({ ip });
+    setTimeout(() => {
+      addDeviceInfo({
+        ip,
+        socket: socket,
+      });
+    }, 1000);
   }
   if (req.url === '/users') {
     users.push(socket);
@@ -115,10 +116,15 @@ wsServer.on('connection', (socket, req) => {
             ledName: 'left',
             startColor: { r: 20, g: 3, b: 178 },
             endColor: { r: 178, g: 3, b: 20 },
+            // startColor: { r: 254, g: 254, b: 254 },
+            // endColor: { r: 254, g: 254, b: 254 },
           });
           led.gradientRgb({
             socket,
             ledName: 'right',
+            // startColor: { r: 254, g: 254, b: 254 },
+            // endColor: { r: 254, g: 254, b: 254 },
+
             startColor: { r: 20, g: 3, b: 178 },
             endColor: { r: 178, g: 3, b: 20 },
           });

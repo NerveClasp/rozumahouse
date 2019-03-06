@@ -12,7 +12,7 @@ import 'typeface-roboto';
 
 const client = new ApolloClient({
   link: new HttpLink({
-    uri: `http://${window.location.hostname}:7331/graphql`,
+    uri: `http://${window.location.hostname}:7777/graphql`,
   }),
   cache: new InMemoryCache(),
 });
