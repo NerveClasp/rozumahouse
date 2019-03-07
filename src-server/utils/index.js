@@ -9,4 +9,12 @@ const sendToSocket = (socket, obj) => {
   }
 };
 
-module.exports = { randomColor, sendToSocket };
+const rgb = ([r, g, b]) => ({ r, g, b });
+
+const randomRgb = ({ min = 0, max = 254 }) => ({
+  r: randomColor(min, max),
+  g: randomColor(min, max),
+  b: randomColor(min, max),
+});
+
+module.exports = { randomColor, sendToSocket, rgb, randomRgb };

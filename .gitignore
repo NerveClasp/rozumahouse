@@ -66,6 +66,7 @@ socket.txt
 
 # arduino build
 build-arduino
+build
 # I guess I'll need to copy these .bin somewhere else later
 !dist-arduino/esp8266-dual-leds.ino.bin
 

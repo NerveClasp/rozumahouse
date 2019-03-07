@@ -15,33 +15,36 @@
 
 const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA updates
 // Fixed definitions cannot change on the fly.
-#define LED_DT_LEFT D8   // Serial data pin
-#define LED_DT_RIGHT D12 // Serial data pin
-
-#define COLOR_ORDER GRB // It's GRB for WS2812B
 #define LED_TYPE WS2812 // What kind of strip are you using (APA102, WS2801 or WS2812B)?
-// #define NUM_LEDS 16     // Number of LED's
-#define NUM_LEDS 180 // Number of LED's
+#define COLOR_ORDER GRB // It's GRB for WS2812B
+
 #define NUM_STRIPS 2
+
+#define LED_DT_ONE D8    // Serial data pin
+#define NUM_LEDS_ONE 180 // Number of LED's
+
+#define LED_DT_TWO D12   // Serial data pin
+#define NUM_LEDS_TWO 180 // Number of LED's
+
 CLEDController *controllers[NUM_STRIPS];
-int activeLeds = 180;
-// #define NUM_LEDS 200 // Number of LED's
 
 // Initialize changeable global variables.
-// int brightness = 10; // Overall brightness definition. It can be changed on the fly.
-int animation_delay = 24;
-int brightness[NUM_STRIPS] = {20, 20}; // Overall brightness definition. It can be changed on the fly.
+int activeLeds[NUM_STRIPS] = {180, 180};
+int animationDuration[NUM_STRIPS] = {6000, 6000};
+int brightness[NUM_STRIPS] = {20, 20};
+const char *mode[NUM_STRIPS] = {"gradient_rgb", "gradient_rgb"};
+const char *animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
+bool ledOn[NUM_STRIPS] = {true, true};
+// Internal global variables
+int maxActiveLeds[NUM_STRIPS] = {180, 180};
+int animation_position[NUM_STRIPS] = {0, 0};
+bool animation_forward[NUM_STRIPS] = {true, true};
 
-struct CRGB leds_one[NUM_LEDS];  // Initialize our LED array.
-struct CRGB leds_two[NUM_LEDS]; // Initialize our LED array.
+struct CRGB leds_one[NUM_LEDS_ONE]; // Initialize our LED array.
+struct CRGB leds_two[NUM_LEDS_TWO]; // Initialize our LED array.
 
 String previousMessage;
 String message = "";
-const char *mode[NUM_STRIPS] = {"gradient_rgb", "gradient_rgb"};
-const char *animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
-
-int animation_position[NUM_STRIPS] = {0, 0};
-bool animation_forward[NUM_STRIPS] = {true, true};
 
 WebSocketsClient webSocket;
 WebSocketsClient devWebSocket;
@@ -51,28 +54,81 @@ char *host = "192.168.1.223";
 int port = 8888;
 char *socketPath = "/devices";
 
+void sendDeviceInfo()
+{
+  StaticJsonBuffer<1500> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["kind"] = "about";
+  root["model"] = MODEL;
+  root["chipId"] = ESP.getChipId();
+  root["freeSketchSpace"] = ESP.getFreeSketchSpace();
+  root["sketchMD5"] = ESP.getSketchMD5();
+  root["power"] = ESP.getVcc();
+  root["coreVersion"] = ESP.getCoreVersion();
+  root["sdkVersion"] = ESP.getSdkVersion();
+  root["ip"] = IpAddress2String(WiFi.localIP());
+  root["mac"] = WiFi.macAddress();
+  // root["activeLeds"] = activeLeds;
+
+  JsonObject &info = root.createNestedObject("info");
+
+  // made with the help of https://arduinojson.org/v5/assistant/
+  JsonArray &actions = info.createNestedArray("actions");
+  actions.add("command");
+  actions.add("check-for-updates");
+  actions.add("send-device-info");
+  actions.add("reboot");
+
+  JsonArray &commands = info.createNestedArray("commands");
+  commands.add("led");
+  commands.add("brightness");
+  commands.add("animation");
+  commands.add("color");
+  commands.add("ledOn");
+  commands.add("animation");
+  commands.add("animationDuration");
+  commands.add("activeLeds");
+
+  JsonArray &animations = info.createNestedArray("animations");
+  animations.add("none");
+  animations.add("forward");
+  animations.add("backward");
+  animations.add("back-and-forth");
+
+  // JsonArray &mode = info.createNestedArray("mode");
+  // mode.add("color");
+  // mode.add("gradient");
+
+  JsonArray &leds = info.createNestedArray("leds");
+  JsonArray &status = root.createNestedArray("status");
+  for (int i = 0; i < NUM_STRIPS; i++)
+  {
+    leds.add(i);
+    JsonObject &led = status.createNestedObject();
+    led["activeLeds"] = activeLeds[i];
+    led["brightness"] = brightness[i];
+    // led["mode"] = mode[i];
+    led["animation"] = animation[i];
+    led["animationDuration"] = animationDuration[i];
+    led["ledOn"] = ledOn[i];
+  }
+
+  sendMessage(root);
+}
+
 void setup()
 {
   Serial.begin(115200); // Initialize serial port for debugging.
   delay(1000);          // Soft startup to ease the flow of electrons.
 
-  controllers[0] = &FastLED.addLeds<LED_TYPE, LED_DT_LEFT, COLOR_ORDER>(leds_one, NUM_LEDS);
-  controllers[1] = &FastLED.addLeds<LED_TYPE, LED_DT_RIGHT, COLOR_ORDER>(leds_two, NUM_LEDS);
-  //  LEDS.addLeds<LED_TYPE, LED_DT_LEFT, COLOR_ORDER>(leds_one, NUM_LEDS);
-  //  LEDS.addLeds<LED_TYPE, LED_DT_RIGHT, COLOR_ORDER>(leds_two, NUM_LEDS);
-
-  // FastLED.setBrightness(brightness);
+  controllers[0] = &FastLED.addLeds<LED_TYPE, LED_DT_ONE, COLOR_ORDER>(leds_one, NUM_LEDS_ONE);
+  controllers[1] = &FastLED.addLeds<LED_TYPE, LED_DT_TWO, COLOR_ORDER>(leds_two, NUM_LEDS_TWO);
   set_max_power_in_volts_and_milliamps(5, 1000); // FastLED power management set at 5V, 500mA
-  FastLED.clear();
-  /*
-startColor: { r: 120, g: 3, b: 178 },
-      endColor: { r: 178, g: 3, b: 105 },
-  */
-  fill_gradient_RGB(leds_two, NUM_LEDS, CRGB(120, 3, 178), CRGB(178, 3, 105));
-  fill_gradient_RGB(leds_one, NUM_LEDS, CRGB(120, 3, 178), CRGB(178, 3, 105));
-
-  // fill_solid(leds_two, NUM_LEDS, CRGB(right_r, right_g, right_b));
-  // fill_solid(leds_one, NUM_LEDS, CRGB(left_r, left_g, left_b));
+  // FastLED.clear();
+  for (int i = 0; i < NUM_STRIPS; i++)
+  {
+    fill_gradient_RGB(controllers[i]->leds(), activeLeds[i], CRGB(12, 3, 178), CRGB(178, 3, 105));
+  }
 
   SPIFFS.begin();
   setupWifi();
@@ -95,16 +151,18 @@ void loop()
     parseMessage(message);
   }
 
-  animate(0);
+  EVERY_N_MILLISECONDS(animationDuration[0] / activeLeds[0])
+  {
+    animate(0);
+  }
+
+  EVERY_N_MILLISECONDS(animationDuration[1] / activeLeds[1])
+  {
+    animate(1);
+  }
+
   controllers[0]->showLeds(brightness[0]);
-
-  //  FastLED[0].show(brightness_left);
-  //  FastLED[1].show(brightness_right);
-  //  controllers[0]->
-  animate(1);
   controllers[1]->showLeds(brightness[1]);
-
-  delay(animation_delay); // TODO: set with JSON
 }
 
 void parseMessage(String message)
@@ -116,21 +174,11 @@ void parseMessage(String message)
     const char *action = root["action"];
     if (strcmp(action, "command") == 0)
     {
-      if (root.containsKey("which"))
+      if (root.containsKey("led"))
       {
         setLeds(root);
         return;
       }
-      if (root.containsKey("animation_delay"))
-      {
-        animation_delay = root["animation_delay"];
-      }
-      // if (root.containsKey("activeLeds"))
-      // {
-      //   int newActiveLeds = root["activeLeds"];
-      //   activeLeds = newActiveLeds;
-      //   setActiveLeds();
-      // }
     }
     else if (strcmp(action, "check-for-updates") == 0)
     {
@@ -164,141 +212,207 @@ void parseMessage(uint8_t *messageUint)
 
 void setLeds(JsonObject &root)
 {
-  const int which = root["which"];
+  const int led = root["led"];
   if (root.containsKey("animation")) // TODO: think if this is needed
   {
-    animation[which] = root["animation"];
+    animation[led] = root["animation"];
   }
 
   if (root.containsKey("brightness")) // TODO: think if this is needed
   {
-    brightness[which] = root["brightness"];
+    brightness[led] = root["brightness"];
   }
-
-  if (root.containsKey("mode"))
+  if (root.containsKey("animationDuration"))
   {
-    const char *mode = root["mode"];
-    if (strcmp(mode, "solid_rgb") == 0)
+    animationDuration[led] = root["animationDuration"];
+  }
+  if (root.containsKey("color"))
+  {
+    JsonArray &color = root["color"];
+    static int size = color.size();
+    switch (size)
     {
-      fill_solid(controllers[which]->leds(), activeLeds, CRGB(root["r"], root["g"], root["b"]));
+    case 1:
+    {
+      JsonArray &color_0 = color[0];
+      int r_0 = color_0[0];
+      int g_0 = color_0[1];
+      int b_0 = color_0[2];
+      fill_solid(
+          controllers[led]->leds(),
+          activeLeds[led],
+          CRGB(r_0, g_0, b_0));
+      break;
     }
-
-    if (strcmp(mode, "gradient_rgb") == 0)
+    case 2:
     {
-      JsonObject &from = root["from"];
-      JsonObject &to = root["to"];
+      JsonArray &color_0 = color[0];
+      JsonArray &color_1 = color[1];
+      int r_0 = color_0[0];
+      int g_0 = color_0[1];
+      int b_0 = color_0[2];
+      int r_1 = color_1[0];
+      int g_1 = color_1[1];
+      int b_1 = color_1[2];
+      fill_gradient_RGB(
+          controllers[led]->leds(),
+          activeLeds[led],
+          CRGB(r_0, g_0, b_0),
+          CRGB(r_1, g_1, b_1));
+      break;
+    }
+    case 3:
+    {
+      JsonArray &color_0 = color[0];
+      JsonArray &color_1 = color[1];
+      JsonArray &color_2 = color[2];
+      int r_0 = color_0[0];
+      int g_0 = color_0[1];
+      int b_0 = color_0[2];
+      int r_1 = color_1[0];
+      int g_1 = color_1[1];
+      int b_1 = color_1[2];
+      int r_2 = color_2[0];
+      int g_2 = color_2[1];
+      int b_2 = color_2[2];
 
       fill_gradient_RGB(
-          controllers[which]->leds(),
-          activeLeds,
-          CRGB(from["r"], from["g"], from["b"]),
-          CRGB(to["r"], to["g"], to["b"]));
-      // resetAnimationPos();
+          controllers[led]->leds(),
+          activeLeds[led],
+          CRGB(r_0, g_0, b_0),
+          CRGB(r_1, g_1, b_1),
+          CRGB(r_2, g_2, b_2));
+      break;
     }
-    if (strcmp(mode, "off") == 0)
+    case 4:
     {
-      fill_solid(controllers[which]->leds(), activeLeds, CRGB(0, 0, 0));
-      // resetAnimationPos();
+      JsonArray &color_0 = color[0];
+      JsonArray &color_1 = color[1];
+      JsonArray &color_2 = color[2];
+      JsonArray &color_3 = color[3];
+
+      int r_0 = color_0[0];
+      int g_0 = color_0[1];
+      int b_0 = color_0[2];
+      int r_1 = color_1[0];
+      int g_1 = color_1[1];
+      int b_1 = color_1[2];
+      int r_2 = color_2[0];
+      int g_2 = color_2[1];
+      int b_2 = color_2[2];
+      int r_3 = color_3[0];
+      int g_3 = color_3[1];
+      int b_3 = color_3[2];
+
+      fill_gradient_RGB(
+          controllers[led]->leds(),
+          activeLeds[led],
+          CRGB(r_0, g_0, b_0),
+          CRGB(r_1, g_1, b_1),
+          CRGB(r_2, g_2, b_2),
+          CRGB(r_3, g_3, b_3));
+      break;
+    }
+
+    default:
+    {
+      Serial.println("Too few or too many colors");
+      break;
+    }
     }
   }
-  // setActiveLeds();
-  FastLED.delay(animation_delay);
-}
-
-void setActiveLeds()
-{
-  if (NUM_LEDS > activeLeds)
+  if (root.containsKey("ledOn"))
   {
-    //    leds_one(activeLeds, NUM_LEDS - activeLeds).fillSolid(CHSV(0, 0, 0));
-    //    leds_two(activeLeds, NUM_LEDS - activeLeds).fillSolid(CHSV(0, 0, 0));
-    fill_solid(&(leds_one[activeLeds]), NUM_LEDS - activeLeds, CRGB(0, 0, 0));
-    fill_solid(&(leds_two[activeLeds]), NUM_LEDS - activeLeds, CRGB(0, 0, 0));
-  }
-}
-
-void animate(int which)
-{
-  if (strcmp(animation[which], "none") == 0)
-  {
-    resetAnimationPos(which);
-    return;
-  }
-  if (strcmp(animation[which], "back-and-forth") == 0)
-  {
-    animateBackAndForth(which);
-  }
-  if (strcmp(animation[which], "forward") == 0)
-  {
-    animateForward(which);
-  }
-  if (strcmp(animation[which], "backward") == 0)
-  {
-    animateBackward(which);
-  }
-}
-
-void resetAnimationPos(int which)
-{
-  animation_forward[which] = true;
-  animation_position[which] = 0;
-}
-
-void animateBackAndForth(int which)
-{
-  if (animation_forward[which])
-  {
-    if (animation_position[which] == activeLeds)
+    ledOn[led] = root["ledOn"];
+    if (!ledOn[led])
     {
-      animation_forward[which] = false;
-      animation_position[which] = activeLeds - 1;
+      fill_solid(controllers[led]->leds(), maxActiveLeds[led], CRGB(0, 0, 0));
+    }
+  }
+  //  if (root.containsKey("activeLeds"))
+  //  {
+  //    activeLeds[led] = root["activeLeds"];
+  //    setActiveLeds(led);
+  //  }
+}
+
+//void setActiveLeds(int led)
+//{
+//  fill_gradient_RGB(&(controllers[led]->leds()[activeLeds[led]]), maxActiveLeds[led] - activeLeds[led], CRGB(0, 0, 0));
+//}
+
+void animate(int led)
+{
+  if (strcmp(animation[led], "back-and-forth") == 0)
+  {
+    animateBackAndForth(led);
+  }
+  if (strcmp(animation[led], "forward") == 0)
+  {
+    animateForward(led);
+  }
+  if (strcmp(animation[led], "backward") == 0)
+  {
+    animateBackward(led);
+  }
+}
+
+void resetAnimationPos(int led)
+{
+  animation_forward[led] = true;
+  animation_position[led] = 0;
+}
+
+void animateBackAndForth(int led)
+{
+  if (animation_forward[led])
+  {
+    if (animation_position[led] == activeLeds[led])
+    {
+      animation_forward[led] = false;
+      animation_position[led] = activeLeds[led] - 1;
     }
     else
     {
-      animation[which] = "forward";
-      animateForward(which);
-      animation_position[which] += 1;
+      animateForward(led);
+      animation_position[led] += 1;
     }
   }
   else
   {
-    if (animation_position[which] < 0)
+    if (animation_position[led] < 0)
     {
-      animation_forward[which] = true;
-      animation_position[which] = 0;
+      animation_forward[led] = true;
+      animation_position[led] = 0;
     }
     else
     {
-      animation[which] = "backward";
-      animateBackward(which);
-      animation_position[which] -= 1;
+      animateBackward(led);
+      animation_position[led] -= 1;
     }
   }
 }
 
-void animateForward(int which)
+void animateBackward(int led)
 {
-  if (strcmp(animation[which], "forward") == 0)
+  CRGB firstColor = controllers[led]->leds()[0];
+  int ledsNum = activeLeds[led];
+  for (int i = 0; i < ledsNum - 1; i++)
   {
-    CRGB firstColor = controllers[which]->leds()[0];
-    for (int i = 0; i < activeLeds - 1; i++)
-    {
-      controllers[which]->leds()[i] = controllers[which]->leds()[i + 1];
-    }
-    controllers[which]->leds()[activeLeds - 1] = firstColor;
+    controllers[led]->leds()[i] = controllers[led]->leds()[i + 1];
   }
+  controllers[led]->leds()[ledsNum - 1] = firstColor;
 }
 
-void animateBackward(int which)
+void animateForward(int led)
 {
-  if (strcmp(animation[which], "backward") == 0)
+  int ledsNum = activeLeds[led];
+  CRGB lastColor = controllers[led]->leds()[ledsNum - 1];
+  for (int i = ledsNum - 1; i > 0; i--)
   {
-    CRGB lastColor = controllers[which]->leds()[activeLeds - 1];
-    for (int i = activeLeds - 1; i > 0; i--)
-    {
-      controllers[which]->leds()[i] = controllers[which]->leds()[i - 1];
-    }
-    controllers[which]->leds()[0] = lastColor;
+    controllers[led]->leds()[i] = controllers[led]->leds()[i - 1];
   }
+  controllers[led]->leds()[0] = lastColor;
 }
 
 // SETUP
@@ -435,56 +549,6 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
   }
 }
 
-void sendDeviceInfo()
-{
-  StaticJsonBuffer<1000> jsonBuffer;
-  JsonObject &info = jsonBuffer.createObject();
-  info["kind"] = "about";
-  info["model"] = MODEL;
-  info["chipId"] = ESP.getChipId();
-  info["freeSketchSpace"] = ESP.getFreeSketchSpace();
-  info["sketchMD5"] = ESP.getSketchMD5();
-  info["power"] = ESP.getVcc();
-  info["coreVersion"] = ESP.getCoreVersion();
-  info["sdkVersion"] = ESP.getSdkVersion();
-  info["ip"] = IpAddress2String(WiFi.localIP());
-  info["mac"] = WiFi.macAddress();
-  info["activeLeds"] = activeLeds;
-
-  // made with the help of https://arduinojson.org/v5/assistant/
-  JsonArray &action = info.createNestedArray("action");
-  action.add("command");
-  action.add("check-for-updates");
-  action.add("send-device-info");
-  action.add("reboot");
-
-  JsonArray &command = info.createNestedArray("command");
-  command.add("which");
-  command.add("brightness");
-  command.add("animation");
-  command.add("mode");
-  // command.add("animation_delay");
-  // command.add("activeLeds");
-
-  JsonArray &animation = info.createNestedArray("animation");
-  animation.add("none");
-  animation.add("forward");
-  animation.add("backward");
-  animation.add("back-and-forth");
-
-  JsonArray &which = info.createNestedArray("which");
-  which.add(0);
-  which.add(1);
-  // which.add("off");
-
-  JsonArray &mode = info.createNestedArray("mode");
-  mode.add("solid_rgb");
-  mode.add("gradient_rgb");
-  mode.add("off");
-
-  sendMessage(info);
-}
-
 String IpAddress2String(const IPAddress &ipAddress)
 {
   return String(ipAddress[0]) + String(".") +
@@ -540,7 +604,7 @@ void sendMessage(JsonObject &object)
 }
 
 /*
-  {"action":"command","right":{"mode":"solid_rgb","r":33,"g":62,"b":207},"left":{"mode":"solid_rgb","r":33,"g":62,"b":207},"brightness":10}
+  {"action":"command","right":{"mode":"color","r":33,"g":62,"b":207},"left":{"mode":"color","r":33,"g":62,"b":207},"brightness":10}
 
   {"action":"command","right":{"mode":"gradient_rgb", "from":{"r":254,"g":254,"b":0}, "to":{"r":254,"g":0,"b":254}},"left":{"mode":"gradient_rgb", "from":{"r":254,"g":254,"b":0}, "to":{"r":254,"g":0,"b":254}},"brightness":10}
 

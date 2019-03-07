@@ -14,6 +14,7 @@ import Select from '@material-ui/core/Select';
 import pink from '@material-ui/core/colors/pink';
 import green from '@material-ui/core/colors/green';
 import DeviceIcon from '../DeviceIcon';
+import Led from '../Led';
 
 const styles = {
   avatar: {
@@ -30,34 +31,6 @@ const styles = {
     backgroundColor: green[500],
   },
 };
-
-const TURN_ON = gql`
-  mutation TurnLedOn($mac: String!, $which: Int!) {
-    turnLedOn(mac: $mac, which: $which) {
-      mac
-    }
-  }
-`;
-
-const TURN_OFF = gql`
-  mutation TurnLedOff($mac: String!, $which: Int!) {
-    turnLedOff(mac: $mac, which: $which) {
-      mac
-    }
-  }
-`;
-
-const ANIMATION_CHANGE = gql`
-  mutation ChangeLedAnimation(
-    $mac: String!
-    $which: Int!
-    $animation: String!
-  ) {
-    changeLedAnimation(mac: $mac, which: $which, animation: $animation) {
-      mac
-    }
-  }
-`;
 
 const REBOOT = gql`
   mutation Reboot($mac: String!) {
@@ -77,17 +50,8 @@ const CHECK_FOR_UPDATES = gql`
 
 class Device extends Component {
   render() {
-    const { device } = this.props;
-    const {
-      model,
-      ip,
-      mac,
-      name,
-      animation,
-      action,
-      activeLeds,
-      which,
-    } = device;
+    const { model, ip, mac, name, info, status } = this.props;
+    const { actions } = info;
     return (
       <Card>
         <CardContent>
@@ -100,66 +64,16 @@ class Device extends Component {
         </CardContent>
         <CardActions>
           <List>
-            {which &&
-              which.map((w, which) => (
-                <ListItem>
-                  {animation ? (
-                    <Mutation mutation={ANIMATION_CHANGE} ignoreResults>
-                      {(changeLedAnimation, { data }) => (
-                        <Select
-                          // value={this.state.age}
-                          onChange={e => {
-                            const { mac } = this.props.device;
-                            const { value } = e.target;
-                            changeLedAnimation({
-                              variables: { mac, which, animation: value },
-                            });
-                          }}
-                        >
-                          {animation.map((anim, i) => (
-                            <MenuItem key={i} value={anim}>
-                              {anim}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      )}
-                    </Mutation>
-                  ) : (
-                    '--'
-                  )}
-                  <Mutation mutation={TURN_ON} ignoreResults>
-                    {(turnLedOn, { data }) => (
-                      <Button
-                        onClick={e => {
-                          const { mac } = this.props.device;
-                          turnLedOn({ variables: { mac, which } });
-                        }}
-                      >
-                        Turn ON
-                      </Button>
-                    )}
-                  </Mutation>
-                  <Mutation mutation={TURN_OFF} ignoreResults>
-                    {(turnLedOff, { data }) => (
-                      <Button
-                        onClick={e => {
-                          const { mac } = this.props.device;
-                          turnLedOff({ variables: { mac, which } });
-                        }}
-                      >
-                        Turn OFF
-                      </Button>
-                    )}
-                  </Mutation>
-                </ListItem>
+            {status &&
+              status.map((ledStatus, led) => (
+                <Led mac={mac} led={led} {...ledStatus} info={info} />
               ))}
             <ListItem>
-              {action && action.find(act => act === 'reboot') && (
+              {actions && actions.find(act => act === 'reboot') && (
                 <Mutation mutation={REBOOT} ignoreResults>
                   {reboot => (
                     <Button
                       onClick={e => {
-                        const { mac } = this.props.device;
                         reboot({ variables: { mac } });
                       }}
                     >
@@ -168,12 +82,11 @@ class Device extends Component {
                   )}
                 </Mutation>
               )}
-              {action && action.find(act => act === 'check-for-updates') && (
+              {actions && actions.find(act => act === 'check-for-updates') && (
                 <Mutation mutation={CHECK_FOR_UPDATES} ignoreResults>
                   {checkForUpdates => (
                     <Button
                       onClick={e => {
-                        const { mac } = this.props.device;
                         checkForUpdates({ variables: { mac } });
                       }}
                     >
@@ -186,7 +99,7 @@ class Device extends Component {
           </List>
         </CardActions>
 
-        {activeLeds && <td>{activeLeds}</td>}
+        {/* {activeLeds && <td>{activeLeds}</td>} */}
       </Card>
     );
   }

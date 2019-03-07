@@ -3,7 +3,7 @@ import React from 'react';
 import gql from 'graphql-tag';
 import { Query } from 'react-apollo';
 import Device from '../Device';
-import classes from './DeviceList.module.scss';
+// import classes from './DeviceList.module.scss';
 
 const GET_DEVICES = gql`
   {
@@ -12,11 +12,18 @@ const GET_DEVICES = gql`
       ip
       mac
       name
-      action
-      command
-      animation
-      which
-      mode
+      info {
+        actions
+        animations
+      }
+      status {
+        activeLeds
+        brightness
+        mode
+        animation
+        animationDuration
+        ledOn
+      }
     }
   }
 `;
@@ -30,7 +37,7 @@ const DeviceList = props => (
       return (
         <div>
           {data.devices &&
-            data.devices.map((device, i) => <Device device={device} key={i} />)}
+            data.devices.map((device, i) => <Device {...device} key={i} />)}
         </div>
       );
     }}

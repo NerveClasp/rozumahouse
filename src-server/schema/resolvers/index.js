@@ -1,4 +1,5 @@
-const { led } = require('../../socket');
+const { ledStrip } = require('../../socket');
+const { rgb } = require('../../utils');
 const StoredDevices = require('../../databaseless');
 const devs = new StoredDevices();
 
@@ -20,44 +21,54 @@ const getDevices = (_, args) => {
   return devices.filter(device => device.model === model);
 };
 
-const turnLedOff = (_, { mac, which }) => {
+const turnLedOff = (_, { mac, led }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  if (which === 'both') {
-    led.off({ socket, which: 0 });
-    led.off({ socket, which: 1 });
+  if (led === 'both') {
+    led.off({ socket, led: 0 });
+    led.off({ socket, led: 1 });
   } else {
-    led.off({ socket, which });
+    led.off({ socket, led });
   }
   devs.updateDevice(device);
   return device;
 };
 
-const turnLedOn = (_, args) => {
-  const { mac, which, ...other } = args;
+const toggleLed = (_, args) => {
+  const { mac, led, ledOn, ...other } = args;
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  if (which === 'both') {
-    led.initDual({ ...other });
+  device.status[led] = { ...device.status[led], ledOn, ...other };
+  if (ledOn) {
+    ledStrip.send({
+      socket,
+      led,
+      ledOn,
+      action: 'command',
+      ...device.status[led],
+    });
   } else {
-    led.init({ socket, which, ...other });
+    ledStrip.send({ socket, led, ledOn, action: 'command' });
   }
   devs.updateDevice(device);
   return device;
 };
 
-const changeLedAnimation = (_, { mac, which, animation }) => {
+const changeLedAnimation = (_, { mac, led, animation }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.animation({ socket, which, animation });
+  ledStrip.animation({ socket, led, animation });
+  device.status[led].animation = animation;
   devs.updateDevice(device);
   return device;
 };
 
-const changeLedBrightness = (_, { mac, which, brightness }) => {
+const changeLedBrightness = (_, { mac, led, brightness }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.brightness({ socket, which, brightness });
+  ledStrip.brightness({ socket, brightness, led });
+  // led.brightness({ socket, led, brightness });
+  device.status[led].brightness = brightness;
   devs.updateDevice(device);
   return device;
 };
@@ -65,21 +76,38 @@ const changeLedBrightness = (_, { mac, which, brightness }) => {
 const reboot = (_, { mac }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.reboot({ socket });
+  ledStrip.reboot({ socket });
   return device;
 };
 
 const checkForUpdates = (_, { mac }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.checkForUpdates({ socket });
+  ledStrip.checkForUpdates({ socket });
   return device;
 };
 
-const setActiveLeds = (_, { mac, which, activeLeds, ...other }) => {
+const setActiveLeds = (_, { mac, led, activeLeds, ...other }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.setActiveLeds({ socket, which, activeLeds, ...other });
+  ledStrip.setActiveLeds({ socket, led, activeLeds, ...other });
+  return device;
+};
+
+const changeLed = (_, { mac, led, from, to, color, ...other }) => {
+  const device = devs.getDeviceByMac(mac);
+  const { socket } = device;
+  const message = { socket, led, ...other };
+  if (from) {
+    message.from = rgb(from);
+  }
+  if (to) {
+    message.to = rgb(to);
+  }
+  if (color) {
+    message.color = rgb(color);
+  }
+  ledStrip.send({ socket, led, ...other });
   return device;
 };
 
@@ -89,10 +117,10 @@ module.exports = {
     devices: getDevices,
   },
   Mutation: {
-    turnLedOn,
-    turnLedOff,
+    toggleLed,
     changeLedAnimation,
     changeLedBrightness,
+    changeLed,
     reboot,
     checkForUpdates,
     setActiveLeds,

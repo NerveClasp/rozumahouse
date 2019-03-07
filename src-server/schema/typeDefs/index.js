@@ -15,20 +15,45 @@ module.exports = gql`
     freeSketchSpace: Int
     coreVersion: String
     sdkVersion: String
-    action: [String]
-    command: [String]
-    animation: [String]
-    which: [Int]
+    info: Info
+    status: [Led]
+  }
+  type Info {
+    actions: [String]
+    commands: [String]
+    animations: [String]
+    leds: [Int]
     mode: [String]
+  }
+  type Led {
     activeLeds: Int
+    brightness: Int
+    mode: String
+    animation: String
+    animationDuration: Int
+    ledOn: Boolean
+  }
+  type Color {
+    r: Int!
+    g: Int!
+    b: Int!
   }
   type Mutation {
-    turnLedOn(mac: String!, which: Int!): Device
-    turnLedOff(mac: String!, which: Int!): Device
-    changeLedAnimation(mac: String!, which: Int!, animation: String!): Device
-    changeLedBrightness(mac: String!, which: Int!, brightness: String!): Device
+    toggleLed(mac: String!, led: Int!, ledOn: Boolean!): Device
+    changeLedAnimation(mac: String!, led: Int!, animation: String!): Device
+    changeLedBrightness(mac: String!, led: Int!, brightness: Int!): Device
+    changeLed(
+      mac: String!
+      led: Int!
+      brightness: Int
+      mode: String
+      from: [Int]
+      to: [Int]
+      color: [Int]
+      animation: String
+    ): Device
     reboot(mac: String!): Device
     checkForUpdates(mac: String!): Device
-    setActiveLeds(mac: String!, which: Int!, activeLeds: Int!): Device
+    setActiveLeds(mac: String!, led: Int!, activeLeds: Int!): Device
   }
 `;

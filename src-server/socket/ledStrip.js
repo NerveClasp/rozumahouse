@@ -13,20 +13,10 @@ const to = {
 
 const mode = 'gradient_rgb';
 
-const off = ({ socket, which }) => {
+const init = ({ socket, brightness = 20, led, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    which,
-    mode: 'off',
-    brightness: 0,
-    animation: 'off',
-  });
-};
-
-const init = ({ socket, brightness = 20, which, animation, ...other }) => {
-  sendToSocket(socket, {
-    action: 'command',
-    which,
+    led,
     mode,
     from,
     to,
@@ -39,7 +29,7 @@ const init = ({ socket, brightness = 20, which, animation, ...other }) => {
 const initDual = ({ socket, brightness = 20, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    which: 0,
+    led: 0,
     mode,
     from,
     to,
@@ -49,7 +39,7 @@ const initDual = ({ socket, brightness = 20, animation, ...other }) => {
   });
   sendToSocket(socket, {
     action: 'command',
-    which: 1,
+    led: 1,
     mode,
     from,
     to,
@@ -59,30 +49,28 @@ const initDual = ({ socket, brightness = 20, animation, ...other }) => {
   });
 };
 
-const gradientRgb = ({ socket, which, startColor, endColor, ...other }) => {
+const color = ({ socket, led, color, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    which,
-    mode: 'gradient_rgb',
-    from: startColor || from,
-    to: endColor || to,
+    led,
+    color,
     ...other,
   });
 };
 
-const brightness = ({ socket, brightness = 20, which, ...other }) => {
+const brightness = ({ socket, brightness = 20, led, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    which,
+    led,
     brightness,
     ...other,
   });
 };
 
-const animation = ({ socket, which, animation, ...other }) => {
+const animation = ({ socket, led, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    which,
+    led,
     animation,
     ...other,
   });
@@ -113,8 +101,7 @@ const setActiveLeds = ({ socket, activeLeds, ...other }) => {
 };
 
 module.exports = {
-  off,
-  gradientRgb,
+  color,
   brightness,
   initDual,
   init,

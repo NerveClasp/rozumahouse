@@ -1,3 +1,3 @@
-const led = require('./led');
+const ledStrip = require('./ledStrip');
 
-module.exports = { led };
+module.exports = { ledStrip };
