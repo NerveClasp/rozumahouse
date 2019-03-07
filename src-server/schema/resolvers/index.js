@@ -24,12 +24,10 @@ const turnLedOff = (_, { mac, which }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
   if (which === 'both') {
-    device.state = { ...device.state, left: 'off', right: 'off' };
-    led.off({ socket, ledName: 'left' });
-    led.off({ socket, ledName: 'right' });
+    led.off({ socket, which: 0 });
+    led.off({ socket, which: 1 });
   } else {
-    device.state[which] = 'off';
-    led.off({ socket, ledName: which });
+    led.off({ socket, which });
   }
   devs.updateDevice(device);
   return device;
@@ -40,29 +38,26 @@ const turnLedOn = (_, args) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
   if (which === 'both') {
-    led.initDual({ ...other, ...device });
-    device.state = { ...device.state, left: 'on', right: 'on' };
+    led.initDual({ ...other });
   } else {
-    device.state[which] = 'on';
-    led.init({ socket, ledName: which, ...other, ...device });
+    led.init({ socket, which, ...other });
   }
   devs.updateDevice(device);
   return device;
 };
 
-const changeLedAnimation = (_, { mac, animation }) => {
+const changeLedAnimation = (_, { mac, which, animation }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.animation({ socket, animation });
-  device.curAnimation = animation;
+  led.animation({ socket, which, animation });
   devs.updateDevice(device);
   return device;
 };
 
-const changeLedBrightness = (_, { mac, brightness }) => {
+const changeLedBrightness = (_, { mac, which, brightness }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.brightness({ socket, brightness });
+  led.brightness({ socket, which, brightness });
   devs.updateDevice(device);
   return device;
 };
@@ -81,10 +76,10 @@ const checkForUpdates = (_, { mac }) => {
   return device;
 };
 
-const setActiveLeds = (_, { mac, activeLeds, ...other }) => {
+const setActiveLeds = (_, { mac, which, activeLeds, ...other }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  led.setActiveLeds({ socket, activeLeds, ...other });
+  led.setActiveLeds({ socket, which, activeLeds, ...other });
   return device;
 };
 

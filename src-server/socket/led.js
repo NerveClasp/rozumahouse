@@ -13,25 +13,23 @@ const to = {
 
 const mode = 'gradient_rgb';
 
-const off = ({ socket, ledName }) => {
+const off = ({ socket, which }) => {
   sendToSocket(socket, {
     action: 'command',
-    [ledName]: {
-      mode: 'off',
-    },
+    which,
+    mode: 'off',
     brightness: 0,
     animation: 'off',
   });
 };
 
-const init = ({ socket, brightness = 20, ledName, animation, ...other }) => {
+const init = ({ socket, brightness = 20, which, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    [ledName]: {
-      mode,
-      from,
-      to,
-    },
+    which,
+    mode,
+    from,
+    to,
     brightness,
     animation: animation || 'back-and-forth',
     ...other,
@@ -41,45 +39,50 @@ const init = ({ socket, brightness = 20, ledName, animation, ...other }) => {
 const initDual = ({ socket, brightness = 20, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    left: {
-      mode,
-      from,
-      to,
-    },
-    right: {
-      mode,
-      from,
-      to,
-    },
+    which: 0,
+    mode,
+    from,
+    to,
+    brightness,
+    animation: animation || 'back-and-forth',
+    ...other,
+  });
+  sendToSocket(socket, {
+    action: 'command',
+    which: 1,
+    mode,
+    from,
+    to,
     brightness,
     animation: animation || 'back-and-forth',
     ...other,
   });
 };
 
-const gradientRgb = ({ socket, ledName, startColor, endColor, ...other }) => {
+const gradientRgb = ({ socket, which, startColor, endColor, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
-    [ledName]: {
-      mode: 'gradient_rgb',
-      from: startColor || from,
-      to: endColor || to,
-    },
+    which,
+    mode: 'gradient_rgb',
+    from: startColor || from,
+    to: endColor || to,
     ...other,
   });
 };
 
-const brightness = ({ socket, brightness = 20, ...other }) => {
+const brightness = ({ socket, brightness = 20, which, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
+    which,
     brightness,
     ...other,
   });
 };
 
-const animation = ({ socket, animation, ...other }) => {
+const animation = ({ socket, which, animation, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
+    which,
     animation,
     ...other,
   });

@@ -23,7 +23,7 @@ const styles = {
 };
 
 const TURN_ON = gql`
-  mutation TurnLedOn($mac: String!, $which: String!) {
+  mutation TurnLedOn($mac: String!, $which: Int!) {
     turnLedOn(mac: $mac, which: $which) {
       mac
     }
@@ -31,7 +31,7 @@ const TURN_ON = gql`
 `;
 
 const TURN_OFF = gql`
-  mutation TurnLedOff($mac: String!, $which: String!) {
+  mutation TurnLedOff($mac: String!, $which: Int!) {
     turnLedOff(mac: $mac, which: $which) {
       mac
     }
@@ -39,8 +39,12 @@ const TURN_OFF = gql`
 `;
 
 const ANIMATION_CHANGE = gql`
-  mutation ChangeLedAnimation($mac: String!, $animation: String!) {
-    changeLedAnimation(mac: $mac, animation: $animation) {
+  mutation ChangeLedAnimation(
+    $mac: String!
+    $which: Int!
+    $animation: String!
+  ) {
+    changeLedAnimation(mac: $mac, which: $which, animation: $animation) {
       mac
     }
   }
@@ -65,7 +69,16 @@ const CHECK_FOR_UPDATES = gql`
 class Device extends Component {
   render() {
     const { device } = this.props;
-    const { model, ip, mac, name, animation, action, activeLeds } = device;
+    const {
+      model,
+      ip,
+      mac,
+      name,
+      animation,
+      action,
+      activeLeds,
+      which,
+    } = device;
     return (
       <tr>
         <td>{model && <DeviceIcon model={model} />}</td>
@@ -73,59 +86,64 @@ class Device extends Component {
         <td>{ip}</td>
         <td>{mac}</td>
         <td>{name || 'no name'}</td>
-        <td>
-          {animation ? (
-            <Mutation mutation={ANIMATION_CHANGE} ignoreResults>
-              {(changeLedAnimation, { data }) => (
-                <select
-                  name="animation"
-                  onChange={e => {
-                    const { mac } = this.props.device;
-                    const { value } = e.target;
-                    changeLedAnimation({
-                      variables: { mac, animation: value },
-                    });
-                  }}
-                >
-                  <option value="none">none</option>
-                  {animation.map((anim, i) => (
-                    <option key={i} value={anim}>
-                      {anim}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Mutation>
-          ) : (
-            '--'
-          )}
-        </td>
-        <td>
-          <Mutation mutation={TURN_ON} ignoreResults>
-            {(turnLedOn, { data }) => (
-              <button
-                onClick={e => {
-                  const { mac } = this.props.device;
-                  turnLedOn({ variables: { mac, which: 'both' } });
-                }}
-              >
-                Turn ON
-              </button>
-            )}
-          </Mutation>
-          <Mutation mutation={TURN_OFF} ignoreResults>
-            {(turnLedOff, { data }) => (
-              <button
-                onClick={e => {
-                  const { mac } = this.props.device;
-                  turnLedOff({ variables: { mac, which: 'both' } });
-                }}
-              >
-                Turn OFF
-              </button>
-            )}
-          </Mutation>
-        </td>
+        {which &&
+          which.map((w, which) => (
+            <>
+              <td>
+                {animation ? (
+                  <Mutation mutation={ANIMATION_CHANGE} ignoreResults>
+                    {(changeLedAnimation, { data }) => (
+                      <select
+                        name="animation"
+                        onChange={e => {
+                          const { mac } = this.props.device;
+                          const { value } = e.target;
+                          changeLedAnimation({
+                            variables: { mac, which, animation: value },
+                          });
+                        }}
+                      >
+                        {animation.map((anim, i) => (
+                          <option key={i} value={anim}>
+                            {anim}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </Mutation>
+                ) : (
+                  '--'
+                )}
+              </td>
+              <td>
+                <Mutation mutation={TURN_ON} ignoreResults>
+                  {(turnLedOn, { data }) => (
+                    <button
+                      onClick={e => {
+                        const { mac } = this.props.device;
+                        turnLedOn({ variables: { mac, which } });
+                      }}
+                    >
+                      Turn ON
+                    </button>
+                  )}
+                </Mutation>
+                <Mutation mutation={TURN_OFF} ignoreResults>
+                  {(turnLedOff, { data }) => (
+                    <button
+                      onClick={e => {
+                        const { mac } = this.props.device;
+                        turnLedOff({ variables: { mac, which } });
+                      }}
+                    >
+                      Turn OFF
+                    </button>
+                  )}
+                </Mutation>
+              </td>
+            </>
+          ))}
+
         {action && action.find(act => act === 'reboot') && (
           <Mutation mutation={REBOOT} ignoreResults>
             {reboot => (

@@ -15,9 +15,8 @@ const GET_DEVICES = gql`
       action
       command
       animation
-      left
-      right
-      activeLeds
+      which
+      mode
     }
   }
 `;

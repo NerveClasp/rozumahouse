@@ -12,9 +12,13 @@ import 'typeface-roboto';
 
 const client = new ApolloClient({
   link: new HttpLink({
-    uri: `http://${window.location.hostname}:7777/graphql`,
+    uri: `http://${window.location.hostname}:8888/graphql`,
   }),
   cache: new InMemoryCache(),
+  onError: ({ networkError, graphQLErrors }) => {
+    console.log('graphQLErrors', graphQLErrors);
+    console.log('networkError', networkError);
+  },
 });
 
 ReactDOM.render(

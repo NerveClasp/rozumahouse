@@ -58,7 +58,7 @@ WebSocketsClient devWebSocket;
 //char *devHost = "192.168.1.100";
 char *host = "192.168.1.223";
 
-int port = 7777;
+int port = 8888;
 char *socketPath = "/devices";
 
 void setup()

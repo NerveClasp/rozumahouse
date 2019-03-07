@@ -21,7 +21,7 @@ const app = express();
 apollo.applyMiddleware({ app });
 
 const server = http.createServer(app);
-const port = process.env.PORT || 7777;
+const port = process.env.PORT || 8888;
 const wsServer = new WebSocket.Server({ server });
 
 app.use(cors());
@@ -113,7 +113,7 @@ wsServer.on('connection', (socket, req) => {
 
           led.gradientRgb({
             socket,
-            ledName: 'left',
+            which: 0,
             startColor: { r: 20, g: 3, b: 178 },
             endColor: { r: 178, g: 3, b: 20 },
             // startColor: { r: 254, g: 254, b: 254 },
@@ -121,12 +121,12 @@ wsServer.on('connection', (socket, req) => {
           });
           led.gradientRgb({
             socket,
-            ledName: 'right',
+            which: 1,
             // startColor: { r: 254, g: 254, b: 254 },
             // endColor: { r: 254, g: 254, b: 254 },
 
-            startColor: { r: 20, g: 3, b: 178 },
-            endColor: { r: 178, g: 3, b: 20 },
+            startColor: { r: 3, g: 20, b: 178 },
+            endColor: { r: 3, g: 178, b: 20 },
           });
           setTimeout(() => {
             // led.brightness({
@@ -145,22 +145,24 @@ wsServer.on('connection', (socket, req) => {
   });
 
   if (req.url === '/devices') {
-    // led.off({ socket, ledName: 'left' });
-    // led.off({ socket, ledName: 'right' });
+    // led.off({ socket, which: 'left' });
+    // led.off({ socket, which: 'right' });
     // led.initDual({ socket, brightness: 20, animation: 'back-and-forth' });
     // rgb(120, 3, 178)
     // rgb(178, 3, 105)
     led.gradientRgb({
       socket,
-      ledName: 'left',
+      which: 0,
       startColor: { r: 120, g: 3, b: 178 },
       endColor: { r: 178, g: 3, b: 105 },
+      brightness: 20,
     });
     led.gradientRgb({
       socket,
-      ledName: 'right',
+      which: 1,
       startColor: { r: 120, g: 3, b: 178 },
       endColor: { r: 178, g: 3, b: 105 },
+      brightness: 20,
     });
     setTimeout(() => {
       led.animation({ socket, animation: 'back-and-forth' });
