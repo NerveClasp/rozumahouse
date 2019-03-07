@@ -28,23 +28,10 @@ const DeviceList = props => (
       if (error) return `Error! ${error.message}`;
 
       return (
-        <table className={classes.table}>
-          <thead>
-            <tr>
-              <td />
-              <td>Model</td>
-              <td>IP</td>
-              <td>MAC</td>
-              <td>Name</td>
-            </tr>
-          </thead>
-          <tbody>
-            {data.devices &&
-              data.devices.map((device, i) => (
-                <Device device={device} key={i} />
-              ))}
-          </tbody>
-        </table>
+        <div>
+          {data.devices &&
+            data.devices.map((device, i) => <Device device={device} key={i} />)}
+        </div>
       );
     }}
   </Query>
