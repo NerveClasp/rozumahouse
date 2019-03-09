@@ -123,7 +123,7 @@ wsServer.on('connection', (socket, req) => {
   // }
 });
 
-const staticDir = path.resolve(path.join(__dirname, '..', 'build'));
+const staticDir = path.resolve(path.join(__dirname, 'build'));
 
 console.log(JSON.stringify(getFileList()));
 /**
