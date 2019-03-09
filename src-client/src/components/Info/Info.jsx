@@ -1,11 +1,13 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { withStyles } from '@material-ui/core/styles';
 import InfoChip from '../InfoChip';
 
 const styles = {
   root: {
     display: 'flex',
-    maxWidth: 344,
+    // maxWidth: 344,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   colors: {
     display: 'flex',

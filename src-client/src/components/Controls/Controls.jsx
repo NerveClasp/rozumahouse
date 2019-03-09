@@ -1,20 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import { graphql } from 'react-apollo';
-
-import Typography from '@material-ui/core/Typography';
-import ListItem from '@material-ui/core/ListItem';
-
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-
 import Chip from '@material-ui/core/Chip';
-import Select from '@material-ui/core/Select';
-import pink from '@material-ui/core/colors/pink';
-import green from '@material-ui/core/colors/green';
 import Slider from '@material-ui/lab/Slider';
-import ColorPicker from 'material-ui-color-picker';
 import { SketchPicker } from 'react-color';
 
 const styles = {
@@ -79,7 +67,7 @@ class Controls extends Component {
     const {
       kind,
       brightness,
-      color,
+      // color,
       animation,
       animations,
       classes,
@@ -107,6 +95,8 @@ class Controls extends Component {
                   className={classes.animation}
                   label={a}
                   onClick={() => this.handleAnimationClick(a)}
+                  clickable
+                  color={a === animation ? 'primary' : 'secondary'}
                 />
               );
             })}
@@ -117,7 +107,7 @@ class Controls extends Component {
     }
   };
   renderColorPickers = () => {
-    const { color } = this.state;
+    // const { color } = this.state;
 
     return (
       <div>

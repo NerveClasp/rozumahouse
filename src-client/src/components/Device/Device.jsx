@@ -56,7 +56,7 @@ class Device extends Component {
     return (
       <Card className={classes.root}>
         <CardContent className={classes.content}>
-          <Typography variant="h5">
+          <Typography variant="h4">
             {/* {model && <DeviceIcon model={model} />} {model} */}
             {model}
           </Typography>

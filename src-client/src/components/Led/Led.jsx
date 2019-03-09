@@ -2,20 +2,8 @@ import React, { Component } from 'react';
 import gql from 'graphql-tag';
 import { Mutation } from 'react-apollo';
 import { withStyles } from '@material-ui/core/styles';
-import { graphql } from 'react-apollo';
-
-import Typography from '@material-ui/core/Typography';
-import ListItem from '@material-ui/core/ListItem';
-
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
-
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
-import pink from '@material-ui/core/colors/pink';
-import green from '@material-ui/core/colors/green';
-import Slider from '@material-ui/lab/Slider';
-import ColorPicker from 'material-ui-color-picker';
 import { SketchPicker } from 'react-color';
 import Info from '../Info';
 import Controls from '../Controls';
@@ -39,19 +27,6 @@ const styles = {
   brightness: {
     width: '100%',
     padding: 16,
-  },
-  avatar: {
-    margin: 10,
-  },
-  pinkAvatar: {
-    margin: 10,
-    color: '#fff',
-    backgroundColor: pink[500],
-  },
-  greenAvatar: {
-    margin: 10,
-    color: '#fff',
-    backgroundColor: green[500],
   },
 };
 
