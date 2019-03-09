@@ -94,20 +94,24 @@ const setActiveLeds = (_, { mac, led, activeLeds, ...other }) => {
   return device;
 };
 
-const changeLed = (_, { mac, led, from, to, color, ...other }) => {
+/*
+mac: String!
+      led: Int!
+      brightness: Int
+      mode: String
+      color: [Int]
+      animation: String
+*/
+const changeLed = (_, message) => {
+  console.log({ message });
+  const { mac } = message;
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  const message = { socket, led, ...other };
-  if (from) {
-    message.from = rgb(from);
-  }
-  if (to) {
-    message.to = rgb(to);
-  }
-  if (color) {
-    message.color = rgb(color);
-  }
-  ledStrip.send({ socket, led, ...other });
+  // const message = { socket, led, brightness, animation, color };
+  ledStrip.sendCommand({
+    socket,
+    ...message,
+  });
   return device;
 };
 

@@ -9,26 +9,27 @@ import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
-import pink from '@material-ui/core/colors/pink';
-import green from '@material-ui/core/colors/green';
-import DeviceIcon from '../DeviceIcon';
+// import MenuItem from '@material-ui/core/MenuItem';
+// import Select from '@material-ui/core/Select';
+// import pink from '@material-ui/core/colors/indigo';
+// import green from '@material-ui/core/colors/green';
+// import DeviceIcon from '../DeviceIcon';
 import Led from '../Led';
 
 const styles = {
-  avatar: {
-    margin: 10,
+  root: {
+    width: '100%',
+    margin: '16px 0',
+    backgroundColor: '#7c819a',
   },
-  pinkAvatar: {
-    margin: 10,
-    color: '#fff',
-    backgroundColor: pink[500],
+  content: {
+    width: 384,
+    maxWidth: 384,
+    paddingBottom: 4,
   },
-  greenAvatar: {
-    margin: 10,
-    color: '#fff',
-    backgroundColor: green[500],
+  list: {
+    width: '100%',
+    padding: 0,
   },
 };
 
@@ -50,23 +51,24 @@ const CHECK_FOR_UPDATES = gql`
 
 class Device extends Component {
   render() {
-    const { model, ip, mac, name, info, status } = this.props;
+    const { model, ip, mac, info, status, classes } = this.props;
     const { actions } = info;
     return (
-      <Card>
-        <CardContent>
-          <Typography variant="h3">
-            {model && <DeviceIcon model={model} />} {model}
+      <Card className={classes.root}>
+        <CardContent className={classes.content}>
+          <Typography variant="h5">
+            {/* {model && <DeviceIcon model={model} />} {model} */}
+            {model}
           </Typography>
-          <Typography variant="subheading">
-            {ip} | {mac} | {name || 'no name'}
+          <Typography variant="subtitle1">
+            {ip} | {mac}
           </Typography>
         </CardContent>
         <CardActions>
-          <List>
+          <List className={classes.list}>
             {status &&
               status.map((ledStatus, led) => (
-                <Led mac={mac} led={led} {...ledStatus} info={info} />
+                <Led key={led} mac={mac} led={led} {...ledStatus} info={info} />
               ))}
             <ListItem>
               {actions && actions.find(act => act === 'reboot') && (
@@ -98,8 +100,6 @@ class Device extends Component {
             </ListItem>
           </List>
         </CardActions>
-
-        {/* {activeLeds && <td>{activeLeds}</td>} */}
       </Card>
     );
   }

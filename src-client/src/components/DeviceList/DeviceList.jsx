@@ -20,6 +20,13 @@ const GET_DEVICES = gql`
         activeLeds
         brightness
         mode
+        color {
+          rgb {
+            r
+            g
+            b
+          }
+        }
         animation
         animationDuration
         ledOn
@@ -37,7 +44,9 @@ const DeviceList = props => (
       return (
         <div>
           {data.devices &&
-            data.devices.map((device, i) => <Device {...device} key={i} />)}
+            data.devices.map(
+              (device, i) => device.mac && <Device {...device} key={i} />
+            )}
         </div>
       );
     }}

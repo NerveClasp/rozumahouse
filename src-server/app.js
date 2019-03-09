@@ -11,7 +11,6 @@ const { ApolloServer } = require('apollo-server-express');
 
 const { update, getFileList } = require('./updater');
 const { typeDefs, resolvers } = require('./schema');
-const { ledStrip } = require('./socket');
 const StoredDevices = require('./databaseless');
 
 const devs = new StoredDevices();
@@ -77,7 +76,14 @@ wsServer.on('connection', (socket, req) => {
   }
 
   socket.on('message', message => {
-    const parsedMessage = JSON.parse(message);
+    let parsedMessage;
+    try {
+      parsedMessage = JSON.parse(message);
+    } catch (error) {
+      console.error(error);
+    }
+    if (!parsedMessage) return;
+
     if (req.url !== '/auto') {
       console.log(parsedMessage);
       console.log('===========');
@@ -106,65 +112,15 @@ wsServer.on('connection', (socket, req) => {
     if (!kind) return;
     switch (kind) {
       case 'about':
-        console.log('about');
-        console.log(parsedMessage);
         addDeviceInfo(other);
-        // console.log(`other: ${JSON.stringify(other)}`);
-        if (other.model === 'esp8266-dual-leds') {
-          // ledStrip.initDual({ socket, brightness: 2 });
-
-          ledStrip.color({
-            socket,
-            led: 0,
-            color: [[20, 3, 178], [178, 3, 20]],
-          });
-          ledStrip.color({
-            socket,
-            led: 1,
-            color: [[3, 20, 178], [3, 178, 20]],
-          });
-          setTimeout(() => {
-            // ledStrip.brightness({
-            //   socket,
-            //   brightness: 30,
-            //   animation: 'forward-march-8',
-            // });
-            // ledStrip.send({ action: 'command', activeLeds: 16 });
-            // ledStrip.setActiveLeds({ socket, activeLeds: 32 });
-          }, 3000);
-        }
         break;
       default:
         break;
     }
   });
 
-  if (req.url === '/devices') {
-    // ledStrip.off({ socket, led: 'left' });
-    // ledStrip.off({ socket, led: 'right' });
-    // ledStrip.initDual({ socket, brightness: 20, animation: 'back-and-forth' });
-    // rgb(120, 3, 178)
-    // rgb(178, 3, 105)
-    ledStrip.color({
-      socket,
-      led: 0,
-      color: [[120, 3, 178], [178, 3, 105]],
-      brightness: 20,
-    });
-    //
-    ledStrip.color({
-      socket,
-      led: 1,
-      color: [[120, 3, 178], [178, 3, 105]],
-      brightness: 20,
-    });
-    setTimeout(() => {
-      ledStrip.animation({ socket, animation: 'back-and-forth' });
-    }, 1000);
-    // setTimeout(() => {
-    //   ledStrip.checkForUpdates({ socket }); //
-    // }, 2000);
-  }
+  // if (req.url === '/devices') {
+  // }
 });
 
 const staticDir = path.resolve(path.join(__dirname, '..', 'build'));

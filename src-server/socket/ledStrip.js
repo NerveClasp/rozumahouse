@@ -92,6 +92,13 @@ const send = ({ socket, ...message }) => {
   sendToSocket(socket, message);
 };
 
+const sendCommand = ({ socket, ...message }) => {
+  sendToSocket(socket, {
+    action: 'command',
+    ...message,
+  });
+};
+
 const setActiveLeds = ({ socket, activeLeds, ...other }) => {
   sendToSocket(socket, {
     action: 'command',
@@ -109,5 +116,6 @@ module.exports = {
   checkForUpdates,
   reboot,
   send,
+  sendCommand,
   setActiveLeds,
 };

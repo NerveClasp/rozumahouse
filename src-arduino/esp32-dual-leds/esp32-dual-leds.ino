@@ -22,10 +22,10 @@ const char *MODEL = "esp32-dual-leds"; // do not change if you want OTA updates
 
 #define NUM_STRIPS 2
 
-#define LED_DT_ONE 14    // Serial data pin
-#define NUM_LEDS_ONE 200 // Number of LED's
-#define LED_DT_TWO 12    // Serial data pin
-#define NUM_LEDS_TWO 200 // Number of LED's
+#define LED_DT_ONE 26    // Serial data pin
+#define NUM_LEDS_ONE 180 // Number of LED's
+#define LED_DT_TWO 27    // Serial data pin
+#define NUM_LEDS_TWO 180 // Number of LED's
 
 CLEDController *controllers[NUM_STRIPS];
 
@@ -40,6 +40,9 @@ bool ledOn[NUM_STRIPS] = {true, true};
 int maxActiveLeds[NUM_STRIPS] = {180, 180};
 int animation_position[NUM_STRIPS] = {0, 0};
 bool animation_forward[NUM_STRIPS] = {true, true};
+int defaultColors[2][3] = {
+    {20, 3, 178},
+    {178, 3, 105}};
 
 struct CRGB leds_one[NUM_LEDS_ONE]; // Initialize our LED array.
 struct CRGB leds_two[NUM_LEDS_TWO]; // Initialize our LED array.
@@ -50,7 +53,8 @@ String message = "";
 WebSocketsClient webSocket;
 // WebSocketsClient devWebSocket;
 //char *devHost = "192.168.1.100";
-char *host = "192.168.1.223";
+char *host = "192.168.1.100";
+bool socketConnected = false;
 
 int port = 8888;
 char *socketPath = "/devices";
@@ -75,9 +79,9 @@ void sendDeviceInfo()
   // made with the help of https://arduinojson.org/v5/assistant/
   JsonArray &actions = info.createNestedArray("actions");
   actions.add("command");
-  actions.add("check-for-updates");
+  // actions.add("check-for-updates");
   actions.add("send-device-info");
-  actions.add("reboot");
+  // actions.add("reboot");
 
   JsonArray &commands = info.createNestedArray("commands");
   commands.add("led");
@@ -95,22 +99,35 @@ void sendDeviceInfo()
   animations.add("backward");
   animations.add("back-and-forth");
 
-  // JsonArray &mode = info.createNestedArray("mode");
+  // JsonArray mode = info.createNestedArray("mode");
   // mode.add("color");
   // mode.add("gradient");
 
   JsonArray &leds = info.createNestedArray("leds");
-  JsonArray &status = root.createNestedArray("status");
+  JsonArray &s = root.createNestedArray("status");
   for (int i = 0; i < NUM_STRIPS; i++)
   {
     leds.add(i);
-    JsonObject &led = status.createNestedObject();
+    JsonObject &led = s.createNestedObject();
     led["activeLeds"] = activeLeds[i];
     led["brightness"] = brightness[i];
     // led["mode"] = mode[i];
     led["animation"] = animation[i];
     led["animationDuration"] = animationDuration[i];
     led["ledOn"] = ledOn[i];
+    JsonArray &color = led.createNestedArray("color");
+
+    JsonObject &color_0 = color.createNestedObject();
+    JsonObject &color_0_rgb = color_0.createNestedObject("rgb");
+    color_0_rgb["r"] = defaultColors[0][0];
+    color_0_rgb["g"] = defaultColors[0][1];
+    color_0_rgb["b"] = defaultColors[0][2];
+
+    JsonObject &color_1 = color.createNestedObject();
+    JsonObject &color_1_rgb = color_1.createNestedObject("rgb");
+    color_1_rgb["r"] = defaultColors[1][0];
+    color_1_rgb["g"] = defaultColors[1][1];
+    color_1_rgb["b"] = defaultColors[1][2];
   }
 
   sendMessage(root);
@@ -127,7 +144,17 @@ void setup()
   // FastLED.clear();
   for (int i = 0; i < NUM_STRIPS; i++)
   {
-    fill_gradient_RGB(controllers[i]->leds(), activeLeds[i], CRGB(120, 3, 178), CRGB(178, 3, 105));
+    fill_gradient_RGB(
+        controllers[i]->leds(),
+        activeLeds[i],
+        CRGB(
+            defaultColors[0][0],
+            defaultColors[0][1],
+            defaultColors[0][2]),
+        CRGB(
+            defaultColors[1][0],
+            defaultColors[1][1],
+            defaultColors[1][2]));
   }
 
   SPIFFS.begin();
@@ -138,6 +165,7 @@ void setup()
   // devWebSocket.onEvent(webSocketEvent);
 
   webSocket.begin(host, port, socketPath);
+  webSocket.setReconnectInterval(5000);
   // devWebSocket.begin(devHost, port, socketPath);
 }
 
@@ -173,6 +201,8 @@ void parseMessage(String message)
   JsonObject &root = jb.parseObject(message);
   if (root.success())
   {
+    Serial.println();
+    root.printTo(Serial);
     const char *action = root["action"];
     if (strcmp(action, "command") == 0)
     {
@@ -182,15 +212,15 @@ void parseMessage(String message)
         return;
       }
     }
-//    else if (strcmp(action, "check-for-updates") == 0)
-//    {
-//      checkForUpdates();
-//    }
-//    else if (strcmp(action, "reboot") == 0)
-//    {
-//      Serial.println("Rebooting");
-//      ESP.restart();
-//    }
+    //    else if (strcmp(action, "check-for-updates") == 0)
+    //    {
+    //      checkForUpdates();
+    //    }
+    //    else if (strcmp(action, "reboot") == 0)
+    //    {
+    //      Serial.println("Rebooting");
+    //      ESP.restart();
+    //    }
     else if (strcmp(action, "send-device-info") == 0)
     {
       sendDeviceInfo();
@@ -217,7 +247,10 @@ void setLeds(JsonObject &root)
   const int led = root["led"];
   if (root.containsKey("animation")) // TODO: think if this is needed
   {
-    animation[led] = root["animation"];
+    if (strcmp(root["animation"], "") != 0)
+    {
+      animation[led] = root["animation"];
+    }
   }
 
   if (root.containsKey("brightness")) // TODO: think if this is needed
@@ -230,16 +263,17 @@ void setLeds(JsonObject &root)
   }
   if (root.containsKey("color"))
   {
+    resetAnimationPos(led);
     JsonArray &color = root["color"];
-    static int size = color.size();
+    int size = color.size();
     switch (size)
     {
     case 1:
     {
-      JsonArray &color_0 = color[0];
-      int r_0 = color_0[0];
-      int g_0 = color_0[1];
-      int b_0 = color_0[2];
+      JsonObject &color_0 = color[0]["rgb"];
+      int r_0 = color_0["r"];
+      int g_0 = color_0["g"];
+      int b_0 = color_0["b"];
       fill_solid(
           controllers[led]->leds(),
           activeLeds[led],
@@ -248,14 +282,14 @@ void setLeds(JsonObject &root)
     }
     case 2:
     {
-      JsonArray &color_0 = color[0];
-      JsonArray &color_1 = color[1];
-      int r_0 = color_0[0];
-      int g_0 = color_0[1];
-      int b_0 = color_0[2];
-      int r_1 = color_1[0];
-      int g_1 = color_1[1];
-      int b_1 = color_1[2];
+      JsonObject &color_0 = color[0]["rgb"];
+      JsonObject &color_1 = color[1]["rgb"];
+      int r_0 = color_0["r"];
+      int g_0 = color_0["g"];
+      int b_0 = color_0["b"];
+      int r_1 = color_1["r"];
+      int g_1 = color_1["g"];
+      int b_1 = color_1["b"];
       fill_gradient_RGB(
           controllers[led]->leds(),
           activeLeds[led],
@@ -265,18 +299,18 @@ void setLeds(JsonObject &root)
     }
     case 3:
     {
-      JsonArray &color_0 = color[0];
-      JsonArray &color_1 = color[1];
-      JsonArray &color_2 = color[2];
-      int r_0 = color_0[0];
-      int g_0 = color_0[1];
-      int b_0 = color_0[2];
-      int r_1 = color_1[0];
-      int g_1 = color_1[1];
-      int b_1 = color_1[2];
-      int r_2 = color_2[0];
-      int g_2 = color_2[1];
-      int b_2 = color_2[2];
+      JsonObject &color_0 = color[0]["rgb"];
+      JsonObject &color_1 = color[1]["rgb"];
+      JsonObject &color_2 = color[2]["rgb"];
+      int r_0 = color_0["r"];
+      int g_0 = color_0["g"];
+      int b_0 = color_0["b"];
+      int r_1 = color_1["r"];
+      int g_1 = color_1["g"];
+      int b_1 = color_1["b"];
+      int r_2 = color_2["r"];
+      int g_2 = color_2["g"];
+      int b_2 = color_2["b"];
 
       fill_gradient_RGB(
           controllers[led]->leds(),
@@ -288,23 +322,23 @@ void setLeds(JsonObject &root)
     }
     case 4:
     {
-      JsonArray &color_0 = color[0];
-      JsonArray &color_1 = color[1];
-      JsonArray &color_2 = color[2];
-      JsonArray &color_3 = color[3];
+      JsonObject &color_0 = color[0]["rgb"];
+      JsonObject &color_1 = color[1]["rgb"];
+      JsonObject &color_2 = color[2]["rgb"];
+      JsonObject &color_3 = color[3]["rgb"];
 
-      int r_0 = color_0[0];
-      int g_0 = color_0[1];
-      int b_0 = color_0[2];
-      int r_1 = color_1[0];
-      int g_1 = color_1[1];
-      int b_1 = color_1[2];
-      int r_2 = color_2[0];
-      int g_2 = color_2[1];
-      int b_2 = color_2[2];
-      int r_3 = color_3[0];
-      int g_3 = color_3[1];
-      int b_3 = color_3[2];
+      int r_0 = color_0["r"];
+      int g_0 = color_0["g"];
+      int b_0 = color_0["b"];
+      int r_1 = color_1["r"];
+      int g_1 = color_1["g"];
+      int b_1 = color_1["b"];
+      int r_2 = color_2["r"];
+      int g_2 = color_2["g"];
+      int b_2 = color_2["b"];
+      int r_3 = color_3["r"];
+      int g_3 = color_3["g"];
+      int b_3 = color_3["b"];
 
       fill_gradient_RGB(
           controllers[led]->leds(),
@@ -367,7 +401,7 @@ void animateBackAndForth(int led)
     if (animation_position[led] == activeLeds[led])
     {
       animation_forward[led] = false;
-      animation_position[led] = activeLeds[led] - 1;
+      animateBackward(led);
     }
     else
     {
@@ -377,10 +411,10 @@ void animateBackAndForth(int led)
   }
   else
   {
-    if (animation_position[led] < 0)
+    if (animation_position[led] == 1)
     {
       animation_forward[led] = true;
-      animation_position[led] = 0;
+      animateForward(led);
     }
     else
     {
@@ -456,25 +490,6 @@ void setupWifi()
   }
 }
 
-void checkWifiSettingsFile()
-{
-  String wifiSettings = fileRead("/wifi.txt");
-
-  Serial.println(wifiSettings);
-  StaticJsonBuffer<1000> jb;
-  JsonObject &root = jb.parseObject(wifiSettings);
-  if (root.success())
-  {
-    const char *name = root["name"];
-    const char *password = root["password"];
-    // root.printTo(Serial);
-  }
-  else
-  {
-    Serial.println("Could not parse JSON");
-  }
-}
-
 // IO
 String fileRead(String name)
 {
@@ -507,26 +522,34 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
   switch (type)
   {
   case WStype_DISCONNECTED:
+  {
+    socketConnected = false;
     break;
+  }
   case WStype_CONNECTED:
   {
     Serial.printf("[WSc] Connected to url: %s\n", payload);
+    socketConnected = true;
     // send message to server when Connected
     // socket.io upgrade confirmation message (required)
     // sendMessage("5");
     // webSocket.sendTXT("5");
     sendDeviceInfo();
+    break;
   }
-  break;
   case WStype_TEXT:
+  {
     parseMessage(payload);
     break;
+  }
   case WStype_BIN:
+  {
     Serial.printf("[WSc] get binary length: %u\n", length);
     // hexdump(payload, length);
     // send data to server
     // webSocket.sendBIN(payload, length);
     break;
+  }
   }
 }
 

@@ -32,8 +32,22 @@ module.exports = gql`
     animation: String
     animationDuration: Int
     ledOn: Boolean
+    color: [Color]
+  }
+  input ColorInput {
+    rgb: RgbInput
+    hex: String
+  }
+  input RgbInput {
+    r: Int!
+    g: Int!
+    b: Int!
   }
   type Color {
+    rgb: Rgb
+    hex: String
+  }
+  type Rgb {
     r: Int!
     g: Int!
     b: Int!
@@ -46,11 +60,8 @@ module.exports = gql`
       mac: String!
       led: Int!
       brightness: Int
-      mode: String
-      from: [Int]
-      to: [Int]
-      color: [Int]
       animation: String
+      color: [ColorInput]
     ): Device
     reboot(mac: String!): Device
     checkForUpdates(mac: String!): Device
