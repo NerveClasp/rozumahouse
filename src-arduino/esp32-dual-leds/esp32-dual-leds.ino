@@ -34,7 +34,7 @@ int activeLeds[NUM_STRIPS] = {180, 180};
 int animationDuration[NUM_STRIPS] = {6000, 6000};
 int brightness[NUM_STRIPS] = {20, 20};
 const char *mode[NUM_STRIPS] = {"gradient_rgb", "gradient_rgb"};
-const char *animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
+String animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
 bool ledOn[NUM_STRIPS] = {true, true};
 // Internal global variables
 int maxActiveLeds[NUM_STRIPS] = {180, 180};
@@ -51,9 +51,11 @@ String previousMessage;
 String message = "";
 
 WebSocketsClient webSocket;
- WebSocketsClient devWebSocket;
-char *devHost = "192.168.1.100";
-char *host = "192.168.1.223";
+// WebSocketsClient devWebSocket;
+// char *devHost = "192.168.1.100";
+// char *host = "192.168.1.223";
+char *host = "192.168.1.100";
+
 //bool socketConnected = false;
 
 int port = 8888;
@@ -162,18 +164,18 @@ void setup()
 
   // setupSockets();
   webSocket.onEvent(webSocketEvent);
-   devWebSocket.onEvent(webSocketEvent);
+  // devWebSocket.onEvent(webSocketEvent);
 
   webSocket.begin(host, port, socketPath);
   webSocket.setReconnectInterval(5000);
-   devWebSocket.begin(devHost, port, socketPath);
-   devWebSocket.setReconnectInterval(5000);
+  // devWebSocket.begin(devHost, port, socketPath);
+  // devWebSocket.setReconnectInterval(5000);
 }
 
 void loop()
 {
   webSocket.loop();
-   devWebSocket.loop();
+  // devWebSocket.loop();
   while (Serial.available() > 0)
   {
     previousMessage = message;
@@ -245,12 +247,15 @@ void parseMessage(uint8_t *messageUint)
 
 void setLeds(JsonObject &root)
 {
+  root.printTo(Serial);
   const int led = root["led"];
   if (root.containsKey("animation")) // TODO: think if this is needed
   {
-    if (strcmp(root["animation"], "") != 0)
+    String newAnimation = root["animation"].as<String>();
+    Serial.println(newAnimation);
+    if (newAnimation != "")
     {
-      animation[led] = root["animation"];
+      animation[led] = newAnimation;
     }
   }
 
@@ -375,15 +380,15 @@ void setLeds(JsonObject &root)
 
 void animate(int led)
 {
-  if (strcmp(animation[led], "back-and-forth") == 0)
+  if (animation[led] == "back-and-forth")
   {
     animateBackAndForth(led);
   }
-  if (strcmp(animation[led], "forward") == 0)
+  if (animation[led] == "forward")
   {
     animateForward(led);
   }
-  if (strcmp(animation[led], "backward") == 0)
+  if (animation[led] == "backward")
   {
     animateBackward(led);
   }
@@ -571,7 +576,7 @@ String jsonToString(JsonObject obj)
 void sendMessage(String message)
 {
   webSocket.sendTXT(message);
-  devWebSocket.sendTXT(message);
+  // devWebSocket.sendTXT(message);
 }
 
 void sendMessage(JsonObject &object)

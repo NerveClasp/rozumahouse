@@ -33,7 +33,7 @@ int activeLeds[NUM_STRIPS] = {180, 180};
 int animationDuration[NUM_STRIPS] = {6000, 6000};
 int brightness[NUM_STRIPS] = {20, 20};
 const char *mode[NUM_STRIPS] = {"gradient_rgb", "gradient_rgb"};
-const char *animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
+String animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
 bool ledOn[NUM_STRIPS] = {true, true};
 // Internal global variables
 int maxActiveLeds[NUM_STRIPS] = {180, 180};
@@ -242,9 +242,9 @@ void setLeds(JsonObject &root)
   const int led = root["led"];
   if (root.containsKey("animation")) // TODO: think if this is needed
   {
-    if (strcmp(root["animation"], "") != 0)
+    String newAnimation = root["animation"].as<String>();
+    if (newAnimation != "")
     {
-      const char *newAnimation = root["animation"];
       animation[led] = newAnimation;
     }
   }
@@ -375,15 +375,15 @@ void setLeds(JsonObject &root)
 
 void animate(int led)
 {
-  if (strcmp(animation[led], "back-and-forth") == 0)
+  if (animation[led] == "back-and-forth")
   {
     animateBackAndForth(led);
   }
-  if (strcmp(animation[led], "forward") == 0)
+  if (animation[led] == "forward")
   {
     animateForward(led);
   }
-  if (strcmp(animation[led], "backward") == 0)
+  if (animation[led] == "backward")
   {
     animateBackward(led);
   }
