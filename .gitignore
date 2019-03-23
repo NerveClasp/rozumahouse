@@ -72,3 +72,4 @@ build
 
 temp.json
 secret.md
+.vscode/ipch/*

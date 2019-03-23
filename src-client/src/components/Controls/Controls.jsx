@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Chip from '@material-ui/core/Chip';
 import Slider from '@material-ui/lab/Slider';
-import { SketchPicker } from 'react-color';
+import { ChromePicker } from 'react-color';
+import LedColorPicker from '../LedColorPicker';
 
 const styles = {
   root: {},
@@ -39,13 +40,13 @@ class Controls extends Component {
     animations: [],
   };
 
-  handleColorChange = (newColor, index) => {
-    const { color } = this.state;
-    const updatedColor = color.map((c, i) => {
-      if (index === i) return newColor;
-      return c;
-    });
-    this.setState({ color: updatedColor });
+  state = {
+    lastColor: { rgb: { r: 0, g: 0, b: 0 } },
+  };
+
+  handleColorsChange = color => {
+    const { onChange } = this.props;
+    onChange({ color });
   };
 
   handleBrightnessChange = (_, brightness) => {
@@ -102,6 +103,13 @@ class Controls extends Component {
             })}
           </div>
         );
+      case 'color':
+        return (
+          <LedColorPicker
+            color={this.props.color}
+            onChange={this.handleColorsChange}
+          />
+        );
       default:
         return 'Control not found';
     }
@@ -111,8 +119,9 @@ class Controls extends Component {
 
     return (
       <div>
-        <SketchPicker
-          color={this.state.color.rgb}
+        <ChromePicker
+          disableAlpha
+          color={this.state.lastColor.rgb}
           onChangeComplete={color => this.handleColorChange(color)}
         />
       </div>

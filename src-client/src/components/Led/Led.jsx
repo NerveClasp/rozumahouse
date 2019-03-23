@@ -84,10 +84,13 @@ class Led extends Component {
 
   applyMutation = (changes, mutate) => {
     const { mac, led } = this.props;
-    const { animation, brightness } = this.state;
+    // const { animation, brightness, color } = this.state;
 
+    console.log(changes);
     mutate({
-      variables: { mac, led, animation, brightness, ...changes },
+      // variables: { mac, led, animation, brightness, ...changes },
+      variables: { mac, led, ...changes },
+
       refetchQueries: true,
     });
   };
@@ -101,30 +104,6 @@ class Led extends Component {
     this.setState({
       color: updatedColor,
     });
-  };
-
-  addColor = () => {
-    const { color } = this.state;
-    this.setState({ color: [...color, { hex: '#fff' }] });
-  };
-
-  renderColorPickers = () => {
-    const { color } = this.state;
-
-    return (
-      <div>
-        {color.map((c, index) => (
-          <SketchPicker
-            color={this.state.color[index].rgb}
-            onChangeComplete={color => this.handleColorChange(color, index)}
-          />
-        ))}
-        {color.length < 4 && <button onClick={this.addColor}>Add Color</button>}
-        {color.length > 0 && (
-          <button onClick={this.applyColor}>Apply Color</button>
-        )}
-      </div>
-    );
   };
 
   handleControlsChange = (change, mutation) => {
