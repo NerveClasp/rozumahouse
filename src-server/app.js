@@ -77,6 +77,7 @@ wsServer.on('connection', (socket, req) => {
 
   socket.on('message', message => {
     let parsedMessage;
+    console.log(message);
     try {
       parsedMessage = JSON.parse(message);
     } catch (error) {

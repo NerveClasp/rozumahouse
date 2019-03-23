@@ -23,7 +23,7 @@ const styles = {
     backgroundColor: '#7c819a',
   },
   content: {
-    width: 384,
+    width: '100%',
     maxWidth: 384,
     paddingBottom: 4,
   },

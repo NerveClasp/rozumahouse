@@ -51,10 +51,10 @@ String previousMessage;
 String message = "";
 
 WebSocketsClient webSocket;
-// WebSocketsClient devWebSocket;
-//char *devHost = "192.168.1.100";
-char *host = "192.168.1.100";
-bool socketConnected = false;
+ WebSocketsClient devWebSocket;
+char *devHost = "192.168.1.100";
+char *host = "192.168.1.223";
+//bool socketConnected = false;
 
 int port = 8888;
 char *socketPath = "/devices";
@@ -162,17 +162,18 @@ void setup()
 
   // setupSockets();
   webSocket.onEvent(webSocketEvent);
-  // devWebSocket.onEvent(webSocketEvent);
+   devWebSocket.onEvent(webSocketEvent);
 
   webSocket.begin(host, port, socketPath);
   webSocket.setReconnectInterval(5000);
-  // devWebSocket.begin(devHost, port, socketPath);
+   devWebSocket.begin(devHost, port, socketPath);
+   devWebSocket.setReconnectInterval(5000);
 }
 
 void loop()
 {
   webSocket.loop();
-  // devWebSocket.loop();
+   devWebSocket.loop();
   while (Serial.available() > 0)
   {
     previousMessage = message;
@@ -523,13 +524,12 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
   {
   case WStype_DISCONNECTED:
   {
-    socketConnected = false;
+    Serial.println("Socket disconnected");
     break;
   }
   case WStype_CONNECTED:
   {
     Serial.printf("[WSc] Connected to url: %s\n", payload);
-    socketConnected = true;
     // send message to server when Connected
     // socket.io upgrade confirmation message (required)
     // sendMessage("5");
@@ -571,7 +571,7 @@ String jsonToString(JsonObject obj)
 void sendMessage(String message)
 {
   webSocket.sendTXT(message);
-  //devWebSocket.sendTXT(message);
+  devWebSocket.sendTXT(message);
 }
 
 void sendMessage(JsonObject &object)

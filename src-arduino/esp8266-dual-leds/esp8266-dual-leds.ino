@@ -50,8 +50,8 @@ String previousMessage;
 String message = "";
 
 WebSocketsClient webSocket;
-WebSocketsClient devWebSocket;
-char *devHost = "192.168.1.100";
+// WebSocketsClient devWebSocket;
+// char *devHost = "192.168.1.100";
 char *host = "192.168.1.223";
 
 int port = 8888;
@@ -161,15 +161,15 @@ void setup()
   webSocket.onEvent(webSocketEvent);
   webSocket.begin(host, port, socketPath);
   webSocket.setReconnectInterval(5000);
-  devWebSocket.onEvent(webSocketEvent);
-  devWebSocket.begin(devHost, port, socketPath);
-  devWebSocket.setReconnectInterval(5000);
+  // devWebSocket.onEvent(webSocketEvent);
+  // devWebSocket.begin(devHost, port, socketPath);
+  // devWebSocket.setReconnectInterval(5000);
 }
 
 void loop()
 {
   webSocket.loop();
-  devWebSocket.loop();
+  // devWebSocket.loop();
   while (Serial.available() > 0)
   {
     previousMessage = message;
@@ -244,7 +244,8 @@ void setLeds(JsonObject &root)
   {
     if (strcmp(root["animation"], "") != 0)
     {
-      animation[led] = root["animation"];
+      const char *newAnimation = root["animation"];
+      animation[led] = newAnimation;
     }
   }
 
@@ -580,8 +581,8 @@ String IpAddress2String(const IPAddress &ipAddress)
 void checkForUpdates()
 {
   Serial.println("Checking for updates");
-  //  checkForUpdates(host, port); // turn off updates from prod for now
-  checkForUpdates(devHost, port);
+  checkForUpdates(host, port);
+  // checkForUpdates(devHost, port);
 }
 
 void checkForUpdates(char *updateHost, int updatePort)
@@ -613,7 +614,7 @@ String jsonToString(JsonObject obj)
 void sendMessage(String message)
 {
   webSocket.sendTXT(message);
-  devWebSocket.sendTXT(message);
+  // devWebSocket.sendTXT(message);
 }
 
 void sendMessage(JsonObject &object)
