@@ -67,7 +67,6 @@ const changeLedBrightness = (_, { mac, led, brightness }) => {
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
   ledStrip.brightness({ socket, brightness, led });
-  // led.brightness({ socket, led, brightness });
   device.status[led].brightness = brightness;
   devs.updateDevice(device);
   return device;
@@ -103,15 +102,15 @@ mac: String!
       animation: String
 */
 const changeLed = (_, message) => {
-  console.log({ message });
-  const { mac } = message;
+  const { mac, led, ...status } = message;
   const device = devs.getDeviceByMac(mac);
   const { socket } = device;
-  // const message = { socket, led, brightness, animation, color };
+  device.status[led] = { ...device.status[led], ...status };
   ledStrip.sendCommand({
     socket,
     ...message,
   });
+  devs.updateDevice(device);
   return device;
 };
 

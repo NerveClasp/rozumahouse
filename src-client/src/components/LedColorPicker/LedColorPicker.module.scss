@@ -1,3 +1,7 @@
+$shadow-key-umbra-opacity:      0.20 !default;
+$shadow-key-penumbra-opacity:   0.14 !default;
+$shadow-ambient-shadow-opacity: 0.12 !default;
+
 .wrapper {
   color: black;
 }
@@ -6,4 +10,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+//from https://codepen.io/owens/pen/ZKeevY
+.activeFab {
+  box-shadow: 0 6px 10px 0 rgba(0, 0, 0, $shadow-key-penumbra-opacity),
+              0 1px 18px 0 rgba(0, 0, 0, $shadow-ambient-shadow-opacity),
+              0 3px 5px -1px rgba(0, 0, 0, $shadow-key-umbra-opacity);
 }

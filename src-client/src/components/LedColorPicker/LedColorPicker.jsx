@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { withStyles } from '@material-ui/core/styles';
 import Fab from '@material-ui/core/Fab';
-import Button from '@material-ui/core/Button';
 import AddIcon from '@material-ui/icons/Add';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import EditIcon from '@material-ui/icons/Edit';
 import ApplyIcon from '@material-ui/icons/Done';
 import DeleteIcon from '@material-ui/icons/Delete';
 import CopyIcon from '@material-ui/icons/FileCopy';
-import NavigationIcon from '@material-ui/icons/Navigation';
 import { ChromePicker } from 'react-color';
 import { omit } from 'lodash';
+import cx from 'classnames';
+
 import { wrapper, pickerWrapper } from './LedColorPicker.module.scss';
 
 const styles = theme => ({
   fab: {
     margin: theme.spacing.unit,
+    boxShadow: theme.shadows[2],
     width: 36,
     height: 36,
+  },
+  activeFab: {
+    boxShadow: theme.shadows[8],
   },
   extendedIcon: {
     marginRight: theme.spacing.unit,
@@ -62,6 +66,7 @@ const LedColorPicker = ({ color, classes, onChange }) => {
     toggleColorPicker(false);
   };
 
+  // TODO: copy color and whole gradients across leds
   const copyColor = () => {
     setCopyColor(currentColor);
   };
@@ -116,7 +121,9 @@ const LedColorPicker = ({ color, classes, onChange }) => {
         return (
           <Fab
             key={i}
-            className={classes.fab}
+            className={cx(classes.fab, {
+              [classes.activeFab]: currentColorIndex === i,
+            })}
             onClick={() => toggleColor(i, c)}
             style={getFabStyle({ color: c, background: true })}
           >
@@ -126,8 +133,8 @@ const LedColorPicker = ({ color, classes, onChange }) => {
                 style={getFabStyle({ color: c, text: true })}
               />
             ) : (
-                <AddIcon />
-              )}
+              <AddIcon />
+            )}
           </Fab>
         );
       })}
