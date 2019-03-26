@@ -20,28 +20,53 @@ const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA update
 
 #define NUM_STRIPS 2
 
-#define LED_DT_ONE D8    // Serial data pin
+//#define LED_DT_ONE D8    // Serial data pin
+#define LED_DT_ONE D3    // Serial data pin
 #define NUM_LEDS_ONE 180 // Number of LED's
 
-#define LED_DT_TWO D12   // Serial data pin
+//#define LED_DT_TWO D12   // Serial data pin
+#define LED_DT_TWO D4    // Serial data pin
 #define NUM_LEDS_TWO 180 // Number of LED's
 
 CLEDController *controllers[NUM_STRIPS];
 
-// Initialize changeable global variables.
-int activeLeds[NUM_STRIPS] = {180, 180};
-int animationDuration[NUM_STRIPS] = {6000, 6000};
-int brightness[NUM_STRIPS] = {20, 20};
-const char *mode[NUM_STRIPS] = {"gradient_rgb", "gradient_rgb"};
-String animation[NUM_STRIPS] = {"back-and-forth", "back-and-forth"};
-bool ledOn[NUM_STRIPS] = {true, true};
+// Initialize led configuration.
+typedef struct RGBColor
+{
+  int r;
+  int g;
+  int b;
+};
+
+typedef struct Settings
+{
+  int activeLeds[NUM_STRIPS];
+  int animationDuration[NUM_STRIPS];
+  int brightness[NUM_STRIPS];
+  String animation[NUM_STRIPS];
+  bool ledOn[NUM_STRIPS];
+  RGBColor color[NUM_STRIPS][4];
+};
+
+Settings config = {
+    {180, 180},             // activeLeds
+    {6000, 6000},           // animationDuration
+    {10, 10},               // brightness
+    {"forward", "forward"}, // animation
+    {true, true},           // ledOn
+    {{{20, 3, 178},         // RGBColor
+      {178, 3, 105},
+      {20, 3, 178},
+      {-1, -1, -1}},
+     {{20, 3, 178},
+      {178, 3, 105},
+      {20, 3, 178},
+      {-1, -1, -1}}}};
+
 // Internal global variables
 int maxActiveLeds[NUM_STRIPS] = {180, 180};
 int animation_position[NUM_STRIPS] = {0, 0};
 bool animation_forward[NUM_STRIPS] = {true, true};
-int defaultColors[2][3] = {
-    {120, 3, 178},
-    {178, 3, 105}};
 
 struct CRGB leds_one[NUM_LEDS_ONE]; // Initialize our LED array.
 struct CRGB leds_two[NUM_LEDS_TWO]; // Initialize our LED array.
@@ -52,14 +77,15 @@ String message = "";
 WebSocketsClient webSocket;
 // WebSocketsClient devWebSocket;
 // char *devHost = "192.168.1.100";
-char *host = "192.168.1.223";
+//char *host = "192.168.1.223";
+char *host = "192.168.1.100";
 
 int port = 8888;
 char *socketPath = "/devices";
 
 void sendDeviceInfo()
 {
-  StaticJsonBuffer<1500> jsonBuffer;
+  StaticJsonBuffer<2000> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["kind"] = "about";
   root["model"] = MODEL;
@@ -97,35 +123,30 @@ void sendDeviceInfo()
   animations.add("backward");
   animations.add("back-and-forth");
 
-  // JsonArray &mode = info.createNestedArray("mode");
-  // mode.add("color");
-  // mode.add("gradient");
-
   JsonArray &leds = info.createNestedArray("leds");
   JsonArray &status = root.createNestedArray("status");
   for (int i = 0; i < NUM_STRIPS; i++)
   {
     leds.add(i);
     JsonObject &led = status.createNestedObject();
-    led["activeLeds"] = activeLeds[i];
-    led["brightness"] = brightness[i];
-    // led["mode"] = mode[i];
-    led["animation"] = animation[i];
-    led["animationDuration"] = animationDuration[i];
-    led["ledOn"] = ledOn[i];
+    led["activeLeds"] = config.activeLeds[i];
+    led["brightness"] = config.brightness[i];
+    led["animation"] = config.animation[i];
+    led["animationDuration"] = config.animationDuration[i];
+    led["ledOn"] = config.ledOn[i];
     JsonArray &color = led.createNestedArray("color");
 
-    JsonObject &color_0 = color.createNestedObject();
-    JsonObject &color_0_rgb = color_0.createNestedObject("rgb");
-    color_0_rgb["r"] = defaultColors[0][0];
-    color_0_rgb["g"] = defaultColors[0][1];
-    color_0_rgb["b"] = defaultColors[0][2];
-
-    JsonObject &color_1 = color.createNestedObject();
-    JsonObject &color_1_rgb = color_1.createNestedObject("rgb");
-    color_1_rgb["r"] = defaultColors[1][0];
-    color_1_rgb["g"] = defaultColors[1][1];
-    color_1_rgb["b"] = defaultColors[1][2];
+    for (int j = 0; j < 4; j++) // 4 here is the max number of CRGB colors fill_gradient_RGB takes
+    {
+      if (config.color[i][j].r != -1)
+      {
+        JsonObject &color_0 = color.createNestedObject();
+        JsonObject &color_0_rgb = color_0.createNestedObject("rgb");
+        color_0_rgb["r"] = config.color[i][j].r;
+        color_0_rgb["g"] = config.color[i][j].g;
+        color_0_rgb["b"] = config.color[i][j].b;
+      }
+    }
   }
 
   sendMessage(root);
@@ -144,15 +165,19 @@ void setup()
   {
     fill_gradient_RGB(
         controllers[i]->leds(),
-        activeLeds[i],
+        config.activeLeds[i],
         CRGB(
-            defaultColors[0][0],
-            defaultColors[0][1],
-            defaultColors[0][2]),
+            config.color[i][0].r,
+            config.color[i][0].g,
+            config.color[i][0].b),
         CRGB(
-            defaultColors[1][0],
-            defaultColors[1][1],
-            defaultColors[1][2]));
+            config.color[i][1].r,
+            config.color[i][1].g,
+            config.color[i][1].b),
+        CRGB(
+            config.color[i][2].r,
+            config.color[i][2].g,
+            config.color[i][2].b));
   }
 
   SPIFFS.begin();
@@ -178,18 +203,18 @@ void loop()
     parseMessage(message);
   }
 
-  EVERY_N_MILLISECONDS(animationDuration[0] / activeLeds[0])
+  EVERY_N_MILLISECONDS(config.animationDuration[0] / config.activeLeds[0])
   {
     animate(0);
   }
 
-  EVERY_N_MILLISECONDS(animationDuration[1] / activeLeds[1])
+  EVERY_N_MILLISECONDS(config.animationDuration[1] / config.activeLeds[1])
   {
     animate(1);
   }
 
-  controllers[0]->showLeds(brightness[0]);
-  controllers[1]->showLeds(brightness[1]);
+  controllers[0]->showLeds(config.brightness[0]);
+  controllers[1]->showLeds(config.brightness[1]);
 }
 
 void parseMessage(String message)
@@ -245,17 +270,17 @@ void setLeds(JsonObject &root)
     String newAnimation = root["animation"].as<String>();
     if (newAnimation != "")
     {
-      animation[led] = newAnimation;
+      config.animation[led] = newAnimation;
     }
   }
 
   if (root.containsKey("brightness")) // TODO: think if this is needed
   {
-    brightness[led] = root["brightness"];
+    config.brightness[led] = root["brightness"];
   }
   if (root.containsKey("animationDuration"))
   {
-    animationDuration[led] = root["animationDuration"];
+    config.animationDuration[led] = root["animationDuration"];
   }
   if (root.containsKey("color"))
   {
@@ -270,9 +295,13 @@ void setLeds(JsonObject &root)
       int r_0 = color_0["r"];
       int g_0 = color_0["g"];
       int b_0 = color_0["b"];
+      config.color[led][0] = {r_0, g_0, b_0};
+      config.color[led][1] = {-1, -1, -1};
+      config.color[led][2] = {-1, -1, -1};
+      config.color[led][3] = {-1, -1, -1};
       fill_solid(
           controllers[led]->leds(),
-          activeLeds[led],
+          config.activeLeds[led],
           CRGB(r_0, g_0, b_0));
       break;
     }
@@ -286,9 +315,13 @@ void setLeds(JsonObject &root)
       int r_1 = color_1["r"];
       int g_1 = color_1["g"];
       int b_1 = color_1["b"];
+      config.color[led][0] = {r_0, g_0, b_0};
+      config.color[led][1] = {r_1, g_1, b_1};
+      config.color[led][2] = {-1, -1, -1};
+      config.color[led][3] = {-1, -1, -1};
       fill_gradient_RGB(
           controllers[led]->leds(),
-          activeLeds[led],
+          config.activeLeds[led],
           CRGB(r_0, g_0, b_0),
           CRGB(r_1, g_1, b_1));
       break;
@@ -307,10 +340,14 @@ void setLeds(JsonObject &root)
       int r_2 = color_2["r"];
       int g_2 = color_2["g"];
       int b_2 = color_2["b"];
+      config.color[led][0] = {r_0, g_0, b_0};
+      config.color[led][1] = {r_1, g_1, b_1};
+      config.color[led][2] = {r_2, g_2, b_2};
+      config.color[led][3] = {-1, -1, -1};
 
       fill_gradient_RGB(
           controllers[led]->leds(),
-          activeLeds[led],
+          config.activeLeds[led],
           CRGB(r_0, g_0, b_0),
           CRGB(r_1, g_1, b_1),
           CRGB(r_2, g_2, b_2));
@@ -335,10 +372,14 @@ void setLeds(JsonObject &root)
       int r_3 = color_3["r"];
       int g_3 = color_3["g"];
       int b_3 = color_3["b"];
+      config.color[led][0] = {r_0, g_0, b_0};
+      config.color[led][1] = {r_1, g_1, b_1};
+      config.color[led][2] = {r_2, g_2, b_2};
+      config.color[led][3] = {r_3, g_3, b_3};
 
       fill_gradient_RGB(
           controllers[led]->leds(),
-          activeLeds[led],
+          config.activeLeds[led],
           CRGB(r_0, g_0, b_0),
           CRGB(r_1, g_1, b_1),
           CRGB(r_2, g_2, b_2),
@@ -355,35 +396,35 @@ void setLeds(JsonObject &root)
   }
   if (root.containsKey("ledOn"))
   {
-    ledOn[led] = root["ledOn"];
-    if (!ledOn[led])
+    config.ledOn[led] = root["ledOn"];
+    if (!config.ledOn[led])
     {
       fill_solid(controllers[led]->leds(), maxActiveLeds[led], CRGB(0, 0, 0));
     }
   }
   //  if (root.containsKey("activeLeds"))
   //  {
-  //    activeLeds[led] = root["activeLeds"];
+  //    config.activeLeds[led] = root["activeLeds"];
   //    setActiveLeds(led);
   //  }
 }
 
 //void setActiveLeds(int led)
 //{
-//  fill_gradient_RGB(&(controllers[led]->leds()[activeLeds[led]]), maxActiveLeds[led] - activeLeds[led], CRGB(0, 0, 0));
+//  fill_gradient_RGB(&(controllers[led]->leds()[config.activeLeds[led]]), maxActiveLeds[led] -config.activeLeds[led], CRGB(0, 0, 0));
 //}
 
 void animate(int led)
 {
-  if (animation[led] == "back-and-forth")
+  if (config.animation[led] == "back-and-forth")
   {
     animateBackAndForth(led);
   }
-  if (animation[led] == "forward")
+  if (config.animation[led] == "forward")
   {
     animateForward(led);
   }
-  if (animation[led] == "backward")
+  if (config.animation[led] == "backward")
   {
     animateBackward(led);
   }
@@ -399,7 +440,7 @@ void animateBackAndForth(int led)
 {
   if (animation_forward[led])
   {
-    if (animation_position[led] == activeLeds[led])
+    if (animation_position[led] == config.activeLeds[led])
     {
       animation_forward[led] = false;
       animateBackward(led);
@@ -428,7 +469,7 @@ void animateBackAndForth(int led)
 void animateBackward(int led)
 {
   CRGB firstColor = controllers[led]->leds()[0];
-  int ledsNum = activeLeds[led];
+  int ledsNum = config.activeLeds[led];
   for (int i = 0; i < ledsNum - 1; i++)
   {
     controllers[led]->leds()[i] = controllers[led]->leds()[i + 1];
@@ -438,7 +479,7 @@ void animateBackward(int led)
 
 void animateForward(int led)
 {
-  int ledsNum = activeLeds[led];
+  int ledsNum = config.activeLeds[led];
   CRGB lastColor = controllers[led]->leds()[ledsNum - 1];
   for (int i = ledsNum - 1; i > 0; i--)
   {
