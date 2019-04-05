@@ -78,6 +78,7 @@ struct CRGB leds_two[NUM_LEDS_TWO]; // Initialize our LED array.
 
 String previousMessage;
 String message = "";
+bool settingsHaveChanged = false;
 
 WebSocketsClient webSocket;
 // WebSocketsClient devWebSocket;
@@ -165,7 +166,7 @@ void setup()
   controllers[0] = &FastLED.addLeds<LED_TYPE, LED_DT_ONE, COLOR_ORDER>(leds_one, NUM_LEDS_ONE);
   controllers[1] = &FastLED.addLeds<LED_TYPE, LED_DT_TWO, COLOR_ORDER>(leds_two, NUM_LEDS_TWO);
   set_max_power_in_volts_and_milliamps(5, 1000); // FastLED power management set at 5V, 500mA
-  // FastLED.clear();
+  FastLED.clear();
   for (int i = 0; i < NUM_STRIPS; i++)
   {
     fill_gradient_RGB(
@@ -191,6 +192,7 @@ void setup()
   webSocket.onEvent(webSocketEvent);
   webSocket.begin(host, port, socketPath);
   webSocket.setReconnectInterval(5000);
+  readSettingsFromDisk();
   // devWebSocket.onEvent(webSocketEvent);
   // devWebSocket.begin(devHost, port, socketPath);
   // devWebSocket.setReconnectInterval(5000);
@@ -220,6 +222,16 @@ void loop()
 
   controllers[0]->showLeds(config[0].brightness);
   controllers[1]->showLeds(config[1].brightness);
+
+  EVERY_N_MINUTES(1)
+  {
+    if (settingsHaveChanged)
+    {
+      Serial.println("settings have changed. Writing to disk.");
+      settingsHaveChanged = false;
+      writeSettingsToDisk();
+    }
+  }
 }
 
 void parseMessage(String message)
@@ -267,9 +279,25 @@ void parseMessage(uint8_t *messageUint)
   parseMessage(message);
 }
 
+// settings leds from saved config file
+void setLeds(JsonArray &settings)
+{
+  int size = settings.size();
+  for (int i = 0; i < size; i++)
+  {
+    setLeds(settings[i], i, false);
+  }
+}
+
+// setting leds after receiving a command from server
 void setLeds(JsonObject &root)
 {
   const int led = root["led"];
+  setLeds(root, led, true);
+}
+
+void setLeds(JsonObject &root, int led, bool saveNewSettings)
+{
   if (root.containsKey("animation")) // TODO: think if this is needed
   {
     String newAnimation = root["animation"].as<String>();
@@ -407,6 +435,11 @@ void setLeds(JsonObject &root)
       fill_solid(controllers[led]->leds(), maxActiveLeds[led], CRGB(0, 0, 0));
     }
   }
+  if (saveNewSettings)
+  {
+    // there's a check for this boolean in the loop every minute to save settings to disk if this is true
+    settingsHaveChanged = true;
+  }
   //  if (root.containsKey("activeLeds"))
   //  {
   //    config[led].activeLeds = root["activeLeds"];
@@ -537,18 +570,80 @@ void setupWifi()
   }
 }
 
-void showFilesystem()
+// Settings
+JsonObject &settingsToJson()
 {
-  Dir dir = SPIFFS.openDir("/");
-  while (dir.next())
+  StaticJsonBuffer<2000> jb;
+  JsonObject &root = jb.createObject();
+  JsonArray &leds = root.createNestedArray("leds");
+  for (int i = 0; i < NUM_STRIPS; i++)
   {
-    Serial.print(dir.fileName());
-    if (dir.fileSize())
+    JsonObject &led = leds.createNestedObject();
+    led["activeLeds"] = config[i].activeLeds;
+    led["brightness"] = config[i].brightness;
+    led["animation"] = config[i].animation;
+    led["animationDuration"] = config[i].animationDuration;
+    led["ledOn"] = config[i].ledOn;
+    JsonArray &color = led.createNestedArray("color");
+
+    for (int j = 0; j < 4; j++) // 4 here is the max number of CRGB colors fill_gradient_RGB takes
     {
-      File f = dir.openFile("r");
-      Serial.println(f.size());
+      if (config[i].color[j].r != -1)
+      {
+        JsonObject &color_0 = color.createNestedObject();
+        JsonObject &color_0_rgb = color_0.createNestedObject("rgb");
+        color_0_rgb["r"] = config[i].color[j].r;
+        color_0_rgb["g"] = config[i].color[j].g;
+        color_0_rgb["b"] = config[i].color[j].b;
+      }
     }
   }
+  return root;
+}
+
+String settingsToText()
+{
+  String result;
+  JsonObject &leds = settingsToJson();
+  leds.printTo(result);
+  return result;
+}
+
+void writeSettingsToDisk()
+{
+  SPIFFS.begin();
+  File f = SPIFFS.open("/settings.txt", "w");
+  if (!f)
+  {
+    Serial.println("settings.txt file failed to open");
+    return;
+  }
+  f.print(settingsToText());
+  f.close();
+}
+
+void readSettingsFromDisk()
+{
+  SPIFFS.begin();
+  File f = SPIFFS.open("/settings.txt", "r");
+  if (!f)
+  {
+    Serial.println("settings.txt file failed to open");
+    return;
+  }
+  String settings = fileRead("/settings.txt");
+  StaticJsonBuffer<2000> jb;
+  JsonObject &root = jb.parseObject(settings);
+  if (root.success())
+  {
+    JsonArray &leds = root["leds"];
+    setLeds(leds);
+  }
+  else
+  {
+    Serial.println("Could not parse settings.txt as JSON");
+  }
+  f.close();
 }
 
 // IO

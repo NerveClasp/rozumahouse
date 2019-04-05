@@ -1,0 +1,71 @@
+{
+  "leds": [
+    {
+      "activeLeds": 180,
+      "brightness": 10,
+      "animation": "forward",
+      "animationDuration": 6000,
+      "ledOn": true,
+      "color": [
+        {
+          "rgb": {
+            "r": 0,
+            "g": 178,
+            "b": 105
+          }
+        },
+        {
+          "rgb": {
+            "r": 178,
+            "g": 3,
+            "b": 105
+          }
+        },
+        {
+          "rgb": {
+            "r": 105,
+            "g": 178,
+            "b": 3
+          }
+        },
+        {
+          "rgb": {
+            "r": 0,
+            "g": 178,
+            "b": 105
+          }
+        }
+      ]
+    },
+    {
+      "activeLeds": 180,
+      "brightness": 10,
+      "animation": "forward",
+      "animationDuration": 6000,
+      "ledOn": true,
+      "color": [
+        {
+          "rgb": {
+            "r": 20,
+            "g": 3,
+            "b": 178
+          }
+        },
+        {
+          "rgb": {
+            "r": 178,
+            "g": 3,
+            "b": 105
+          }
+        },
+        {
+          "rgb": {
+            "r": 20,
+            "g": 3,
+            "b": 178
+          }
+        }
+      ]
+    }
+  ]
+}
