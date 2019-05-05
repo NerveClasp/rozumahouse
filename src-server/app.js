@@ -36,6 +36,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.get('/updates', update);
 
+const { db } = require('./database');
+
 let devices = [];
 let users = [];
 
@@ -44,6 +46,9 @@ const addDeviceInfo = info => {
   devices = devices.map(device => {
     if (device.ip === info.ip || device.mac === info.mac) {
       deviceExists = true;
+      // if(info.mac){
+      //   db.get(info.mac)
+      // }
       return { ...device, ...info };
     }
     return device;
@@ -120,6 +125,16 @@ wsServer.on('connection', (socket, req) => {
     }
   });
 
+  socket.on('close', (s, code, reason) => {
+    console.log('disconnected');
+    console.log({ socket });
+    console.log(s);
+    console.log(code);
+    console.log(reason);
+  });
+
+  // socket.on('')
+
   // if (req.url === '/devices') {
   // }
 });
@@ -139,3 +154,5 @@ apollo.installSubscriptionHandlers(wsServer);
 server.listen(port, () =>
   console.log(`Rozumahouse is listening on port ${port} ;)`)
 );
+
+console.log(db.get('count').value());

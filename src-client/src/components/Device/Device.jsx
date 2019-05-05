@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import gql from 'graphql-tag';
 import { Mutation } from 'react-apollo';
 import { withStyles } from '@material-ui/core/styles';
@@ -49,60 +49,65 @@ const CHECK_FOR_UPDATES = gql`
   }
 `;
 
-class Device extends Component {
-  render() {
-    const { model, ip, mac, info, status, classes } = this.props;
-    const { actions } = info;
-    return (
-      <Card className={classes.root}>
-        <CardContent className={classes.content}>
-          <Typography variant="h4">
-            {/* {model && <DeviceIcon model={model} />} {model} */}
-            {model}
-          </Typography>
-          <Typography variant="subtitle1">
-            {ip} | {mac}
-          </Typography>
-        </CardContent>
-        <CardActions>
-          <List className={classes.list}>
-            {status &&
-              status.map((ledStatus, led) => (
-                <Led key={led} mac={mac} led={led} {...ledStatus} info={info} />
-              ))}
-            <ListItem>
-              {actions && actions.find(act => act === 'reboot') && (
-                <Mutation mutation={REBOOT} ignoreResults>
-                  {reboot => (
-                    <Button
-                      onClick={e => {
-                        reboot({ variables: { mac } });
-                      }}
-                    >
-                      Reboot
-                    </Button>
-                  )}
-                </Mutation>
-              )}
-              {actions && actions.find(act => act === 'check-for-updates') && (
-                <Mutation mutation={CHECK_FOR_UPDATES} ignoreResults>
-                  {checkForUpdates => (
-                    <Button
-                      onClick={e => {
-                        checkForUpdates({ variables: { mac } });
-                      }}
-                    >
-                      Check For Updates
-                    </Button>
-                  )}
-                </Mutation>
-              )}
-            </ListItem>
-          </List>
-        </CardActions>
-      </Card>
-    );
-  }
-}
+const Device = ({ model, ip, mac, info, status, classes, ...other }) => {
+  const { actions } = info;
+  const [checked, setChecked] = useState([false, false]);
+  const handleCheckLed = led => e => {
+    setChecked(checked.map((c, i) => (i === led ? e.target.checked : c)));
+  };
+  console.log(checked);
+  return (
+    <Card className={classes.root}>
+      <CardContent className={classes.content}>
+        <Typography variant="h4">
+          {/* {model && <DeviceIcon model={model} />} {model} */}
+          {model}
+        </Typography>
+        <Typography variant="subtitle1">
+          {ip} | {mac}
+        </Typography>
+      </CardContent>
+      <CardActions>
+        <List className={classes.list}>
+          {status &&
+            status.map((ledStatus, led) => (
+              <Led
+                key={led}
+                mac={mac}
+                led={led}
+                checked={checked[led]}
+                onCheck={handleCheckLed}
+                {...ledStatus}
+                {...other}
+                info={info}
+              />
+            ))}
+          <ListItem>
+            {actions && actions.find(act => act === 'reboot') && (
+              <Mutation mutation={REBOOT} ignoreResults>
+                {reboot => (
+                  <Button onClick={() => reboot({ variables: { mac } })}>
+                    Reboot
+                  </Button>
+                )}
+              </Mutation>
+            )}
+            {actions && actions.find(act => act === 'check-for-updates') && (
+              <Mutation mutation={CHECK_FOR_UPDATES} ignoreResults>
+                {checkForUpdates => (
+                  <Button
+                    onClick={() => checkForUpdates({ variables: { mac } })}
+                  >
+                    Check For Updates
+                  </Button>
+                )}
+              </Mutation>
+            )}
+          </ListItem>
+        </List>
+      </CardActions>
+    </Card>
+  );
+};
 
 export default withStyles(styles)(Device);

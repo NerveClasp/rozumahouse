@@ -1,6 +1,11 @@
 {
   "restartable": "rs",
-  "ignore": [".git", "node_modules/**/node_modules"],
+  "ignore": [
+    ".git",
+    "node_modules/**/node_modules",
+    "devices.json",
+    "schedule.json"
+  ],
   "verbose": true,
   "execMap": {
     "js": "node --harmony"

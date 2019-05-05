@@ -20,11 +20,11 @@ const char *MODEL = "esp8266-dual-leds"; // do not change if you want OTA update
 
 #define NUM_STRIPS 2
 
-//#define LED_DT_ONE D8    // Serial data pin
+// #define LED_DT_ONE D8 // Serial data pin
 #define LED_DT_ONE D3    // Serial data pin
 #define NUM_LEDS_ONE 180 // Number of LED's
 
-//#define LED_DT_TWO D12   // Serial data pin
+// #define LED_DT_TWO D12 // Serial data pin
 #define LED_DT_TWO D4    // Serial data pin
 #define NUM_LEDS_TWO 180 // Number of LED's
 
@@ -83,8 +83,8 @@ bool settingsHaveChanged = false;
 WebSocketsClient webSocket;
 // WebSocketsClient devWebSocket;
 // char *devHost = "192.168.1.100";
-//char *host = "192.168.1.223";
-char *host = "192.168.1.100";
+char *host = "192.168.1.223";
+// char *host = "192.168.1.100";
 
 int port = 8888;
 char *socketPath = "/devices";

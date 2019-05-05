@@ -4,7 +4,7 @@ import { Mutation } from 'react-apollo';
 import { withStyles } from '@material-ui/core/styles';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
-import { SketchPicker } from 'react-color';
+// import Checkbox from '@material-ui/core/Checkbox';
 import Info from '../Info';
 import Controls from '../Controls';
 
@@ -14,7 +14,14 @@ const styles = {
     margin: '4px 0',
   },
   content: {
-    padding: 4,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '4px 8px',
+    flexDirection: 'column',
+  },
+  wrapper: {
+    display: 'flex',
   },
   select: {
     width: '100%',
@@ -84,13 +91,8 @@ class Led extends Component {
 
   applyMutation = (changes, mutate) => {
     const { mac, led } = this.props;
-    // const { animation, brightness, color } = this.state;
-
-    console.log(changes);
     mutate({
-      // variables: { mac, led, animation, brightness, ...changes },
       variables: { mac, led, ...changes },
-
       refetchQueries: true,
     });
   };
@@ -117,7 +119,17 @@ class Led extends Component {
   };
 
   render() {
-    const { info, classes } = this.props;
+    const {
+      // led,
+      info,
+      // checked,
+      // onCheck,
+      classes,
+      copiedColor,
+      setCopiedColor,
+      copiedGradient,
+      setCopiedGradient,
+    } = this.props;
     const { color, brightness, animation, changeKind } = this.state;
 
     return (
@@ -125,22 +137,31 @@ class Led extends Component {
         <Mutation mutation={LED_CHANGE}>
           {changeLed => (
             <CardContent className={classes.content}>
-              <Controls
-                kind={changeKind}
-                brightness={brightness}
-                animation={animation}
-                animations={info.animations}
-                color={color}
-                onChange={change =>
-                  this.handleControlsChange(change, changeLed)
-                }
-              />
-              <Info
-                brightness={brightness}
-                animation={animation}
-                color={color}
-                onChipClick={this.handleInfoClick}
-              />
+              <div className={classes.wrapper}>
+                {/* <Checkbox checked={checked} onChange={onCheck(led)} /> */}
+                <div className="settings">
+                  <Controls
+                    kind={changeKind}
+                    brightness={brightness}
+                    animation={animation}
+                    animations={info.animations}
+                    color={color}
+                    copiedColor={copiedColor}
+                    setCopiedColor={setCopiedColor}
+                    copiedGradient={copiedGradient}
+                    setCopiedGradient={setCopiedGradient}
+                    onChange={change =>
+                      this.handleControlsChange(change, changeLed)
+                    }
+                  />
+                  <Info
+                    brightness={brightness}
+                    animation={animation}
+                    color={color}
+                    onChipClick={this.handleInfoClick}
+                  />
+                </div>
+              </div>
             </CardContent>
           )}
         </Mutation>

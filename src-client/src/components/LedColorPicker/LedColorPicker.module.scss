@@ -8,8 +8,13 @@ $shadow-ambient-shadow-opacity: 0.12 !default;
 
 .pickerWrapper {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  flex-direction: column;
+}
+
+.gradientWrapper{
+  display: flex;
+  justify-content: center;
 }
 
 //from https://codepen.io/owens/pen/ZKeevY

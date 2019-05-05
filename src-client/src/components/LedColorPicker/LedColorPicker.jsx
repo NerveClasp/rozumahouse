@@ -11,7 +11,11 @@ import { ChromePicker } from 'react-color';
 import { omit } from 'lodash';
 import cx from 'classnames';
 
-import { wrapper, pickerWrapper } from './LedColorPicker.module.scss';
+import {
+  wrapper,
+  pickerWrapper,
+  gradientWrapper,
+} from './LedColorPicker.module.scss';
 
 const styles = theme => ({
   fab: {
@@ -28,14 +32,21 @@ const styles = theme => ({
   },
 });
 
-const LedColorPicker = ({ color, classes, onChange }) => {
+const LedColorPicker = ({
+  color,
+  classes,
+  onChange,
+  copiedColor,
+  setCopiedColor,
+  copiedGradient,
+  setCopiedGradient,
+}) => {
   const [colors, setColors] = useState(
     Array.apply(null, Array(4)).map((c, i) =>
       color[i] ? { rgb: omit(color[i].rgb, ['__typename']) } : {}
     )
   );
   const [currentColor, setCurrentColor] = useState(colors[0]);
-  const [copiedColor, setCopyColor] = useState();
   const [currentColorIndex, setCurrentColorIndex] = useState(-1);
   const [isColorPickerOpen, toggleColorPicker] = useState(false);
   const applyColorChange = ({ rgb }) => {
@@ -68,12 +79,16 @@ const LedColorPicker = ({ color, classes, onChange }) => {
 
   // TODO: copy color and whole gradients across leds
   const copyColor = () => {
-    setCopyColor(currentColor);
+    setCopiedColor(currentColor);
   };
 
   const pasteColor = () => {
     setCurrentColor(copiedColor);
     updateColors(copiedColor, currentColorIndex);
+  };
+
+  const pasteGradient = () => {
+    setColors(copiedGradient);
   };
 
   const getFabStyle = ({ color, background, text }) => {
@@ -85,6 +100,8 @@ const LedColorPicker = ({ color, classes, onChange }) => {
       color: text && `rgb(${255 - r}, ${255 - g}, ${255 - b})`,
     };
   };
+
+  console.log(copiedGradient);
   return (
     <div className={wrapper}>
       {isColorPickerOpen && (
@@ -96,20 +113,20 @@ const LedColorPicker = ({ color, classes, onChange }) => {
           />
           <div>
             {copiedColor && (
-              <Fab className={classes.fab} onClick={pasteColor}>
-                <SvgIcon>
+              <Fab
+                className={classes.fab}
+                style={getFabStyle({ color: copiedColor, background: true })}
+                onClick={pasteColor}
+              >
+                <SvgIcon
+                  style={getFabStyle({ color: copiedColor, text: true })}
+                >
                   <path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z" />
                 </SvgIcon>
               </Fab>
             )}
-            <Fab
-              className={classes.fab}
-              onClick={copyColor}
-              style={getFabStyle({ color: copiedColor, background: true })}
-            >
-              <CopyIcon
-                style={getFabStyle({ color: copiedColor, text: true })}
-              />
+            <Fab className={classes.fab} onClick={copyColor}>
+              <CopyIcon />
             </Fab>
             <Fab className={classes.fab} onClick={clearColor}>
               <DeleteIcon />
@@ -138,9 +155,21 @@ const LedColorPicker = ({ color, classes, onChange }) => {
           </Fab>
         );
       })}
-      <Fab className={classes.fab} onClick={applyColors}>
-        <ApplyIcon />
-      </Fab>
+      <div className={gradientWrapper}>
+        {copiedGradient && (
+          <Fab className={classes.fab} onClick={pasteGradient}>
+            <SvgIcon>
+              <path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z" />
+            </SvgIcon>
+          </Fab>
+        )}
+        <Fab className={classes.fab} onClick={() => setCopiedGradient(colors)}>
+          <CopyIcon />
+        </Fab>
+        <Fab className={classes.fab} onClick={applyColors}>
+          <ApplyIcon />
+        </Fab>
+      </div>
     </div>
   );
 };

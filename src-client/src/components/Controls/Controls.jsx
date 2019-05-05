@@ -7,7 +7,9 @@ import { ChromePicker } from 'react-color';
 import LedColorPicker from '../LedColorPicker';
 
 const styles = {
-  root: {},
+  root: {
+    width: '100%',
+  },
   controls: {
     marginBottom: 8,
     minHeight: 32,
@@ -68,7 +70,11 @@ class Controls extends Component {
     const {
       kind,
       brightness,
-      // color,
+      color,
+      copiedColor,
+      copiedGradient,
+      setCopiedColor,
+      setCopiedGradient,
       animation,
       animations,
       classes,
@@ -106,7 +112,11 @@ class Controls extends Component {
       case 'color':
         return (
           <LedColorPicker
-            color={this.props.color}
+            color={color}
+            copiedColor={copiedColor}
+            copiedGradient={copiedGradient}
+            setCopiedColor={setCopiedColor}
+            setCopiedGradient={setCopiedGradient}
             onChange={this.handleColorsChange}
           />
         );
@@ -115,8 +125,6 @@ class Controls extends Component {
     }
   };
   renderColorPickers = () => {
-    // const { color } = this.state;
-
     return (
       <div>
         <ChromePicker

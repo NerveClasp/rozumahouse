@@ -73,3 +73,7 @@ build
 temp.json
 secret.md
 .vscode/ipch/*
+
+# lowdb local files. TODO: create needed empty files during init or smth
+devices.json
+schedule.json
