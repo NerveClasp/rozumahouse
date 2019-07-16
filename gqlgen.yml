@@ -4,7 +4,7 @@
 # for detailed .gqlgen.yml documentation.
 
 schema:
-- schema.graphql
+  - schema.graphql
 exec:
   filename: generated.go
 model:
@@ -13,10 +13,10 @@ resolver:
   filename: resolver.go
   type: Resolver
 autobind: []
-directives:
-  deprecated:
-    skip_runtime: true
-  include:
-    skip_runtime: true
-  skip:
-    skip_runtime: true
+# directives:
+#   deprecated:
+#     skip_runtime: true
+#   include:
+#     skip_runtime: true
+#   skip:
+#     skip_runtime: true

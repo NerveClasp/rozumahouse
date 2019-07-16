@@ -1,4 +1,6 @@
-package go_server
+//go:generate go run github.com/99designs/gqlgen
+
+package rozumahouse
 
 import (
 	"context"

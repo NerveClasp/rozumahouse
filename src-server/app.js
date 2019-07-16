@@ -15,7 +15,7 @@ const StoredDevices = require('./databaseless');
 
 const devs = new StoredDevices();
 
-const apollo = new ApolloServer({ typeDefs, resolvers });
+const apollo = new ApolloServer({ typeDefs, resolvers, playground: true });
 const app = express();
 apollo.applyMiddleware({ app });
 
@@ -151,8 +151,9 @@ if (fs.existsSync(staticDir)) {
 
 apollo.installSubscriptionHandlers(wsServer);
 
-server.listen(port, () =>
-  console.log(`Rozumahouse is listening on port ${port} ;)`)
-);
+server.listen(port, () => {
+  console.log(`Rozumahouse is listening on port ${port} ;)`);
+  console.log(`GraphQL available at ${apollo.graphqlPath}`);
+});
 
 console.log(db.get('count').value());
