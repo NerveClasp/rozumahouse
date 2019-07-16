@@ -76,9 +76,10 @@ const DeviceList = props => {
   };
 
   return (
-    <Query query={GET_DEVICES} pollInterval={500}>
+    <Query query={GET_DEVICES} pollInterval={3000}>
       {({ loading, error, data }) => {
-        if (loading) return 'Loading...';
+        const shouldShowLoading = loading && !data.devices;
+        if (shouldShowLoading) return 'Loading...';
         if (error) return `Error! ${error.message}`;
 
         return (
