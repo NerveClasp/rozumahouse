@@ -9,7 +9,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { ApolloServer } = require('apollo-server-express');
 
-const { update, getFileList } = require('./updater');
+const { update /*, getFileList*/ } = require('./updater');
 const { typeDefs, resolvers } = require('./schema');
 const StoredDevices = require('./databaseless');
 
@@ -36,7 +36,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.get('/updates', update);
 
-const { db } = require('./database');
+// const { db } = require('./database');
 
 let devices = [];
 let users = [];
@@ -141,7 +141,6 @@ wsServer.on('connection', (socket, req) => {
 
 const staticDir = path.resolve(path.join(__dirname, 'build'));
 
-console.log(JSON.stringify(getFileList()));
 /**
  * Serve client only when deploying
  */
@@ -151,8 +150,7 @@ if (fs.existsSync(staticDir)) {
 
 apollo.installSubscriptionHandlers(wsServer);
 
-server.listen(port, () =>
-  console.log(`Rozumahouse is listening on port ${port} ;)`)
-);
-
-console.log(db.get('count').value());
+server.listen(port, () => {
+  console.log(`Rozumahouse is listening on port ${port} ;)`);
+  console.log(`Visit http://localhost:${port}/graphql for GraphQL playground`);
+});

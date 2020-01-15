@@ -1,5 +1,7 @@
 #include <ArduinoJson.h>
 #include <FastLED.h>
+FASTLED_USING_NAMESPACE
+
 #include "FS.h"
 #include <ESP8266WiFi.h>
 #include <WebSocketsClient.h>
@@ -83,8 +85,8 @@ bool settingsHaveChanged = false;
 WebSocketsClient webSocket;
 // WebSocketsClient devWebSocket;
 // char *devHost = "192.168.1.100";
-char *host = "192.168.1.223";
-// char *host = "192.168.1.100";
+//char *host = "192.168.1.223";
+ char *host = "192.168.1.191";
 
 int port = 8888;
 char *socketPath = "/devices";

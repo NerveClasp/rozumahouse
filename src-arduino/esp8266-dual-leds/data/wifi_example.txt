@@ -1,4 +1,0 @@
-{
-  "name": "YOUR WIFI NAME",
-  "password": "YOUR WIFI PASS"
-}

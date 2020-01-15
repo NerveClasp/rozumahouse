@@ -1,0 +1,51 @@
+{
+  "name": "rozumahouse",
+  "version": "0.0.1",
+  "description": "IoT hub for tinkers",
+  "main": "index.js",
+  "repository": "git@github.com:NerveClasp/rozumahouse.git",
+  "author": "Roman Horokhov <nerveclasp@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "in:frontend": "lerna exec --scope @rozumahouse/frontend",
+    "in:backend": "lerna exec --scope @rozumahouse/backend",
+    "in:arduino-svelte": "lerna exec --scope @rozumahouse/arduino-svelte",
+    "start-all": "run-p start:*",
+    "start:frontend": "yarn in:frontend yarn start",
+    "start:backend": "yarn in:backend yarn start",
+    "start:arduino-svelte": "yarn in:arduino-svelte yarn dev",
+    "build-all": "run-s build:*",
+    "build:frontend": "yarn in:frontend yarn build",
+    "build:backend": "yarn in:backend yarn build",
+    "build:arduino-svelte": "yarn in:arduino-svelte yarn build",
+    "lint": "eslint packages --ext .js,.jsx",
+    "lint:fix": "yarn lint --fix",
+    "prettier": "prettier --write ./packages/**/*.{js,jsx,scss,css}"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-react": "^7.17.0",
+    "husky": "^4.0.9",
+    "lerna": "^3.20.2",
+    "lint-staged": "^9.5.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^1.19.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,json,css,scss,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

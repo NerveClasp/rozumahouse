@@ -1,27 +1,28 @@
 {
-  "name": "rozumahouse-server",
-  "version": "1.0.0",
+  "name": "@rozumahouse/backend",
+  "version": "0.0.1",
   "description": "",
   "main": "app.js",
   "scripts": {
     "start": "nodemon app.js",
+    "build": "echo \"no build step yet\" && exit 1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "apollo-server-express": "^2.4.8",
-    "body-parser": "^1.18.3",
+    "apollo-server-express": "^2.9.16",
+    "body-parser": "^1.19.0",
     "cors": "^2.8.5",
-    "express": "^4.16.4",
-    "express-graphql": "^0.7.1",
-    "graphql": "^14.1.1",
-    "graphql-tools": "^4.0.4",
+    "express": "^4.17.1",
+    "express-graphql": "^0.9.0",
+    "graphql": "^14.5.8",
+    "graphql-tools": "^4.0.6",
     "lowdb": "^1.0.0",
     "md5-file": "^4.0.0",
-    "postgraphile": "^4.3.3",
+    "postgraphile": "^4.5.5",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4",
-    "shortid": "^2.2.14",
-    "ws": "^6.1.4"
+    "request-promise": "^4.2.5",
+    "shortid": "^2.2.15",
+    "ws": "^7.2.1"
   },
   "devDependencies": {
     "eslint": "^5.14.1",
@@ -31,23 +32,7 @@
     "lint-staged": "^8.1.4",
     "prettier": "^1.16.4"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.{js,json,css,md}": [
-      "prettier --write",
-      "git add"
-    ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/NerveClasp/rozumahouse.git"
-  },
   "keywords": [
-    "IoT",
     "IoT",
     "Hub"
   ],
