@@ -1,0 +1,45 @@
+{
+  "name": "@rozumahouse/backend",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "build": "echo \"no build step yet\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "apollo-server-express": "^2.9.16",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-graphql": "^0.9.0",
+    "graphql": "^14.5.8",
+    "graphql-tools": "^4.0.6",
+    "lowdb": "^1.0.0",
+    "md5-file": "^4.0.0",
+    "postgraphile": "^4.5.5",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5",
+    "shortid": "^2.2.15",
+    "ws": "^7.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^5.14.1",
+    "eslint-config-prettier": "^4.1.0",
+    "eslint-plugin-prettier": "^3.0.1",
+    "husky": "^1.3.1",
+    "lint-staged": "^8.1.4",
+    "prettier": "^1.16.4"
+  },
+  "keywords": [
+    "IoT",
+    "Hub"
+  ],
+  "author": "Roman Horokhov [nerveclasp@gmail.com]",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/NerveClasp/rozumahouse/issues"
+  },
+  "homepage": "https://github.com/NerveClasp/rozumahouse#readme"
+}
