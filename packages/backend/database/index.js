@@ -22,12 +22,6 @@ db.get('devices')
   .assign({ lol: 'even better' })
   .write();
 
-console.log(
-  db
-    .get('devices')
-    .find({ id: 2 })
-    .value()
-);
 db.get('devices')
   .find({ id: 2 })
   .assign({ but: 'can you do this?' })

@@ -5,11 +5,10 @@ const fs = require('fs');
 const express = require('express');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
-// const { postgraphile } = require('postgraphile');
 const cors = require('cors');
 const { ApolloServer } = require('apollo-server-express');
 
-const { update /*, getFileList*/ } = require('./updater');
+const { update } = require('./updater');
 const { typeDefs, resolvers } = require('./schema');
 const StoredDevices = require('./databaseless');
 
@@ -27,16 +26,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// app.use(
-//   postgraphile(
-//     process.env.DATABASE_URL ||
-//       'postgres://rozumaha_server:rozumaha@localhost/rozumahouse'
-//   )
-// );
-
 app.get('/updates', update);
-
-// const { db } = require('./database');
 
 let devices = [];
 let users = [];
@@ -46,9 +36,6 @@ const addDeviceInfo = info => {
   devices = devices.map(device => {
     if (device.ip === info.ip || device.mac === info.mac) {
       deviceExists = true;
-      // if(info.mac){
-      //   db.get(info.mac)
-      // }
       return { ...device, ...info };
     }
     return device;
@@ -114,7 +101,7 @@ wsServer.on('connection', (socket, req) => {
       }
     }
     const { kind, ...other } = parsedMessage;
-    // console.log(other);
+
     if (!kind) return;
     switch (kind) {
       case 'about':
@@ -132,11 +119,6 @@ wsServer.on('connection', (socket, req) => {
     console.log(code);
     console.log(reason);
   });
-
-  // socket.on('')
-
-  // if (req.url === '/devices') {
-  // }
 });
 
 const staticDir = path.resolve(path.join(__dirname, 'build'));

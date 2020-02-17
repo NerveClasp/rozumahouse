@@ -55,7 +55,7 @@ const Device = ({ model, ip, mac, info, status, classes, ...other }) => {
   const handleCheckLed = led => e => {
     setChecked(checked.map((c, i) => (i === led ? e.target.checked : c)));
   };
-  console.log(checked);
+
   return (
     <Card className={classes.root}>
       <CardContent className={classes.content}>

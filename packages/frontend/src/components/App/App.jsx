@@ -14,6 +14,7 @@ class App extends Component {
         <CssBaseline />
         <div className="App">
           <header className={classes.appHeader}>
+            Test
             <DeviceList onAnimationChange={this.handleAnimationChange} />
           </header>
         </div>
