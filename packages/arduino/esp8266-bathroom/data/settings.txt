@@ -1,0 +1,36 @@
+{
+  "leds": [
+    {
+      "activeLeds": 5,
+      "brightness": 50,
+      "animation": "static",
+      "animationDuration": 6000,
+      "ledOn": true,
+      "color": [
+        {
+          "rgb": {
+            "r": 255,
+            "g": 255,
+            "b": 255
+          }
+        },
+      ]
+    },
+    {
+      "activeLeds": 5,
+      "brightness": 50,
+      "animation": "static",
+      "animationDuration": 6000,
+      "ledOn": true,
+      "color": [
+        {
+          "rgb": {
+            "r": 255,
+            "g": 255,
+            "b": 255
+          }
+        },
+      ]
+    }
+  ]
+}

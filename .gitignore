@@ -80,6 +80,7 @@ typings/
 # personal
 wifi.txt
 socket.txt
+credentials.txt
 
 # arduino build
 build-arduino
