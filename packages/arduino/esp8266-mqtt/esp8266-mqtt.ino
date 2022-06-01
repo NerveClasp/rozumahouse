@@ -68,7 +68,7 @@ RGBColor hexToRgb(String hex) {
 }
 
 Settings config[NUM_STRIPS] = {
-  { 180,           // activeLeds strip 1
+  { 240,           // activeLeds strip 1
     3000,          // animationDuration
     80,            // brightness
     "forward",     // animation
@@ -83,7 +83,7 @@ Settings config[NUM_STRIPS] = {
       /* hexToRgb(color1) */
     /* } */
   },
-  { 180,           // activeLeds strip 2
+  { 240,           // activeLeds strip 2
     3000,          // animationDuration
     80,            // brightness
     "forward",     // animation
@@ -101,7 +101,7 @@ Settings config[NUM_STRIPS] = {
 };
 
 // Internal global variables
-int maxActiveLeds[NUM_STRIPS] = { 180, 180 };
+int maxActiveLeds[NUM_STRIPS] = { 240, 240 };
 int animation_position[NUM_STRIPS] = { 0, 0 };
 bool animation_forward[NUM_STRIPS] = { true, true };
 
